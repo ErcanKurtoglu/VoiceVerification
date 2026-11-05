@@ -8,7 +8,6 @@ export interface ProjectConfig {
   tagline: string;
   description: string;
   estimatedMinutes: number;
-  leadReward: string; // "Örn: 2026 Sektör Benchmark Raporu"
   aiContext: string; // Mini AI için bağlam bilgisi
   questions: Question[];
 }

@@ -2,19 +2,17 @@
 
 import React, { useEffect } from "react";
 import confetti from "canvas-confetti";
-import { CheckCircle, Mail, FileText, ArrowRight, RefreshCcw } from "lucide-react";
+import { CheckCircle, FileText, ArrowRight, RefreshCcw, Sparkles } from "lucide-react";
 import Link from "next/link";
 import { ParticipantData } from "@/types/interview";
 
 interface CompletionCardProps {
   participant: ParticipantData;
-  leadReward: string;
   onReset: () => void;
 }
 
 export const CompletionCard: React.FC<CompletionCardProps> = ({
   participant,
-  leadReward,
   onReset,
 }) => {
   useEffect(() => {
@@ -41,21 +39,20 @@ export const CompletionCard: React.FC<CompletionCardProps> = ({
         Teşekkür Ederiz, {participant.fullName.split(" ")[0]}!
       </h2>
       <p className="text-xs md:text-sm text-slate-300 leading-relaxed max-w-md mx-auto mb-6">
-        Değerli görüşleriniz ve vaktiniz için çok teşekkürler. Sektör tecrübeniz ürünümüzün doğru yönde şekillenmesinde kritik rol oynayacak.
+        Yanıtlarınız başarıyla kaydedildi. Paylaştığınız saha tecrübeleri ve görüşler, ürün geliştirme yol haritamızı ve sektörel hipotezlerimizi doğrulamamızda doğrudan kullanılacaktır.
       </p>
 
-      {/* Rapor Teslim Kartı */}
-      <div className="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-500/20 text-left flex items-start gap-3.5 mb-8">
+      {/* Bilgilendirme Rozeti */}
+      <div className="p-4 rounded-2xl bg-indigo-950/30 border border-indigo-500/20 text-left flex items-start gap-3.5 mb-8">
         <div className="p-2 rounded-xl bg-indigo-500/20 text-indigo-400 shrink-0">
-          <Mail className="w-5 h-5" />
+          <Sparkles className="w-5 h-5" />
         </div>
         <div>
           <h4 className="text-xs font-semibold text-white mb-0.5">
-            {leadReward}
+            Görüşleriniz Başarıyla İşlendi
           </h4>
           <p className="text-[11px] text-indigo-200/80 leading-relaxed">
-            Araştırma tamamlandığında hazırlanan yönetici özeti ve sektör trend raporu doğrudan{" "}
-            <strong className="text-white">{participant.email}</strong> adresinize gönderilecektir.
+            Ses ve metin yanıtlarınız yapay zeka analiz motorumuz tarafından anonim içgörülere dönüştürülmek üzere veri havuzuna dahil edildi.
           </p>
         </div>
       </div>

@@ -8,7 +8,6 @@ export const DEFAULT_PROJECT: ProjectConfig = {
   description:
     "Geliştirmekte olduğumuz ürünün sektör ihtiyaçlarıyla tam örtüşmesi için sizin saha tecrübenize ve görüşlerinize 3 dakika danışmak istiyoruz. Sesli veya dilediğiniz gibi yazılı yanıtlayabilirsiniz.",
   estimatedMinutes: 3,
-  leadReward: "2026 Sektör Doğrulama & Trendler Raporu (PDF)",
   aiContext: `
     Sen bu araştırma projesinin dijital asistanısın. 
     Proje Konusu: Sektör profesyonellerinin müşteri doğrulama, pazar araştırması ve geri bildirim toplama süreçlerindeki zorlukları çözmeyi hedefleyen "Asenkron Sesli Doğrulama Platformu".

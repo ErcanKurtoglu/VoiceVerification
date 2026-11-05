@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
-import { Sparkles, ArrowRight, ShieldCheck, Clock, Gift } from "lucide-react";
+import { Sparkles, ArrowRight, ShieldCheck, Clock } from "lucide-react";
 import { ParticipantData, ParticipantSchema, ProjectConfig } from "@/types/interview";
 import { isSpamSubmission } from "@/features/anti-garbage/honeypot";
 import { ConsentModal } from "./ConsentModal";
@@ -109,14 +109,6 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({ project, onSubmi
       <p className="text-xs md:text-sm text-slate-300 leading-relaxed mb-6">
         {project.description}
       </p>
-
-      {/* Teşvik / Değer Vaadi (Lead Magnet) */}
-      <div className="flex items-start gap-3 p-3.5 rounded-2xl bg-indigo-950/40 border border-indigo-500/20 mb-6 text-xs text-indigo-200">
-        <Gift className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-        <span>
-          Katkınız sonrasında araştırmadan derlenen <strong>{project.leadReward}</strong> e-posta adresinize ücretsiz olarak iletilecektir.
-        </span>
-      </div>
 
       {/* Form */}
       <form onSubmit={handleSubmit} className="space-y-4">

@@ -13,7 +13,7 @@ This skill documents standard operations for extending and debugging the **Voice
 
 ## Key Files & Entry Points
 
-- **Project & Questions Config:** `src/lib/config.ts` (Modify questions, time limits, lead magnet titles, AI context prompt).
+- **Project & Questions Config:** `src/lib/config.ts` (Modify questions, time limits, descriptions, AI context prompt).
 - **Audio Capture & RMS Gate:** `src/features/audio/hooks/useAudioRecorder.ts` and `src/features/anti-garbage/audio-energy.ts`.
 - **In-Interview AI Assistant:** `src/features/assistant/components/AssistantDrawer.tsx` and `src/app/api/chat/route.ts`.
 - **AI Analysis & Sentiment:** `src/services/ai/gemini.ts` and `src/app/api/analyze/route.ts`.

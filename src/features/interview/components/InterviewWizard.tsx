@@ -154,7 +154,6 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({ project }) => 
       {step === "completed" && participant && (
         <CompletionCard
           participant={participant}
-          leadReward={project.leadReward}
           onReset={handleReset}
         />
       )}

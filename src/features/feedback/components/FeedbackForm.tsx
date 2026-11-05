@@ -135,7 +135,7 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
             <span>Gönderiliyor ve Analiz Ediliyor...</span>
           ) : (
             <>
-              <span>Görüşmeyi Tamamla ve Raporu Rezerve Et</span>
+              <span>Görüşmeyi Tamamla</span>
               <Send className="w-4 h-4" />
             </>
           )}
