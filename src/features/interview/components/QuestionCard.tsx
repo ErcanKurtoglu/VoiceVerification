@@ -1,0 +1,172 @@
+"use client";
+
+import React, { useState } from "react";
+import { Mic, PenLine, HelpCircle, ArrowRight, Check } from "lucide-react";
+import { Question, QuestionResponse } from "@/types/interview";
+import { useAudioRecorder } from "@/features/audio/hooks/useAudioRecorder";
+import { AudioRecorderControl } from "@/features/audio/components/AudioRecorderControl";
+import { AssistantDrawer } from "@/features/assistant/components/AssistantDrawer";
+
+interface QuestionCardProps {
+  question: Question;
+  questionNumber: number;
+  totalQuestions: number;
+  projectContext: string;
+  initialResponse?: QuestionResponse;
+  onResponseSubmit: (response: QuestionResponse) => void;
+}
+
+export const QuestionCard: React.FC<QuestionCardProps> = ({
+  question,
+  questionNumber,
+  totalQuestions,
+  projectContext,
+  initialResponse,
+  onResponseSubmit,
+}) => {
+  const [mode, setMode] = useState<"audio" | "text">(
+    initialResponse?.mode || "audio"
+  );
+  const [textInput, setTextInput] = useState(
+    initialResponse?.textResponse || ""
+  );
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+
+  const recorder = useAudioRecorder(question.maxDurationSec);
+
+  const hasAudioResponse = Boolean(recorder.audioBlob || initialResponse?.audioBlob);
+  const hasTextResponse = textInput.trim().length >= 10;
+  const canProceed = mode === "audio" ? hasAudioResponse : hasTextResponse;
+
+  const handleNext = () => {
+    if (!canProceed) return;
+
+    if (mode === "audio") {
+      onResponseSubmit({
+        questionId: question.id,
+        mode: "audio",
+        audioBlob: recorder.audioBlob || initialResponse?.audioBlob,
+        durationSec: recorder.duration || initialResponse?.durationSec,
+      });
+    } else {
+      onResponseSubmit({
+        questionId: question.id,
+        mode: "text",
+        textResponse: textInput.trim(),
+      });
+    }
+  };
+
+  return (
+    <div className="w-full max-w-2xl mx-auto p-6 md:p-8 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-2xl backdrop-blur-xl">
+      {/* İlerleme ve Yardım Barı */}
+      <div className="flex items-center justify-between gap-2 mb-6">
+        <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wider">
+          Soru {questionNumber} / {totalQuestions}
+        </span>
+
+        {/* AI Asistana Danış Butonu */}
+        <button
+          type="button"
+          onClick={() => setIsAssistantOpen(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700/80 border border-slate-700 text-slate-300 hover:text-white text-xs font-medium transition-all group"
+        >
+          <HelpCircle className="w-3.5 h-3.5 text-indigo-400 group-hover:rotate-12 transition-transform" />
+          <span>Soruyu Anlamadım (AI Asistan)</span>
+        </button>
+      </div>
+
+      {/* Soru Başlığı ve Açıklaması */}
+      <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight leading-snug mb-3">
+        {question.title}
+      </h2>
+      <p className="text-xs md:text-sm text-slate-300 leading-relaxed mb-6">
+        {question.description}
+      </p>
+
+      {/* Ses / Metin Modu Sekmeleri */}
+      <div className="flex items-center justify-center p-1 rounded-2xl bg-slate-800/80 border border-slate-700/70 max-w-xs mx-auto mb-6">
+        <button
+          type="button"
+          onClick={() => setMode("audio")}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-medium transition-all ${
+            mode === "audio"
+              ? "bg-indigo-600 text-white shadow-md"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <Mic className="w-3.5 h-3.5" />
+          <span>Sesli Yanıtla</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setMode("text")}
+          className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-xl text-xs font-medium transition-all ${
+            mode === "text"
+              ? "bg-indigo-600 text-white shadow-md"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <PenLine className="w-3.5 h-3.5" />
+          <span>Yazarak Yanıtla</span>
+        </button>
+      </div>
+
+      {/* Giriş Alanı */}
+      <div className="min-h-[160px] flex flex-col justify-center mb-6">
+        {mode === "audio" ? (
+          <AudioRecorderControl
+            recorder={recorder}
+            maxDurationSec={question.maxDurationSec}
+          />
+        ) : (
+          <div className="w-full">
+            <textarea
+              rows={4}
+              value={textInput}
+              onChange={(e) => setTextInput(e.target.value)}
+              placeholder="Fikrinizi buraya yazabilirsiniz (en az 10 karakter)..."
+              className="w-full p-4 rounded-2xl bg-slate-800/60 border border-slate-700 text-xs md:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all leading-relaxed"
+            />
+            <div className="flex justify-between items-center mt-2 px-1 text-[11px] text-slate-500">
+              <span>Fikirlerinizi serbestçe ifade edebilirsiniz.</span>
+              <span>{textInput.trim().length} karakter</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* İlerle Butonu */}
+      <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
+        <span className="text-xs text-slate-400">
+          {canProceed ? (
+            <span className="text-emerald-400 flex items-center gap-1 font-medium">
+              <Check className="w-3.5 h-3.5" /> Yanıtınız hazır
+            </span>
+          ) : (
+            <span>İlerlemek için lütfen ses kaydı alın veya metin yazın.</span>
+          )}
+        </span>
+
+        <button
+          type="button"
+          onClick={handleNext}
+          disabled={!canProceed}
+          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs font-medium shadow-md transition-all active:scale-95"
+        >
+          <span>{questionNumber === totalQuestions ? "Son Adıma Geç" : "Sonraki Soru"}</span>
+          <ArrowRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
+
+      {/* Mini AI Soru Asistanı Drawer */}
+      <AssistantDrawer
+        isOpen={isAssistantOpen}
+        onClose={() => setIsAssistantOpen(false)}
+        question={question}
+        projectContext={projectContext}
+      />
+    </div>
+  );
+};
