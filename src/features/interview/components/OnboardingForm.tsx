@@ -31,21 +31,52 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({ project, onSubmi
   // URL Query Parametrelerinden otomatik doldurma (Hibrit Giriş / Magic Link)
   useEffect(() => {
     if (!searchParams) return;
+
+    // Hızlı Test Kısayolu: ?n=e veya ?test=true
+    const quickN = searchParams.get("n");
+    const isTest = searchParams.get("test") === "true";
+
+    if (quickN || isTest) {
+      const alias = quickN || "e";
+      const quickData: ParticipantData = {
+        fullName: alias === "e" ? "Ercan" : alias,
+        email: `${alias}@test.com`,
+        company: "Test Co",
+        title: "Founder",
+        linkedinUrl: "",
+        consentGiven: true,
+        honeypot: "",
+      };
+      setFormData(quickData);
+      onSubmit(quickData);
+      return;
+    }
+
     const nameParam = searchParams.get("name") || "";
     const emailParam = searchParams.get("email") || "";
     const companyParam = searchParams.get("company") || "";
     const titleParam = searchParams.get("title") || "";
     const linkedinParam = searchParams.get("linkedin") || "";
+    const consentParam = searchParams.get("consent") === "true";
+    const autoStartParam = searchParams.get("autoStart") === "true";
 
-    if (nameParam || emailParam || companyParam || titleParam) {
-      setFormData((prev) => ({
-        ...prev,
-        fullName: nameParam || prev.fullName,
-        email: emailParam || prev.email,
-        company: companyParam || prev.company,
-        title: titleParam || prev.title,
-        linkedinUrl: linkedinParam || prev.linkedinUrl,
-      }));
+    if (nameParam || emailParam || companyParam || titleParam || consentParam) {
+      const updatedData: ParticipantData = {
+        fullName: nameParam || formData.fullName,
+        email: emailParam || formData.email,
+        company: companyParam || formData.company,
+        title: titleParam || formData.title,
+        linkedinUrl: linkedinParam || formData.linkedinUrl,
+        consentGiven: consentParam ? true : formData.consentGiven,
+        honeypot: "",
+      };
+
+      setFormData(updatedData);
+
+      // Eğer autoStart verilmişse ve temel zorunlu alanlar doluysa doğrudan başlat
+      if (autoStartParam && nameParam && emailParam && companyParam && titleParam && consentParam) {
+        onSubmit(updatedData);
+      }
     }
   }, [searchParams]);
 
