@@ -1,1 +1,37 @@
-[]
+[
+  {
+    "id": "test-session-001",
+    "projectId": "print-it-right",
+    "startedAt": "2026-11-06T07:40:00.000Z",
+    "completedAt": "2026-11-06T07:44:00.000Z",
+    "participant": {
+      "fullName": "Ercan",
+      "email": "ercan@test.com",
+      "company": "A-Side Project",
+      "title": "Lead",
+      "consentGiven": true
+    },
+    "tracking": {
+      "uid": "usr_test123",
+      "ref": "direct"
+    },
+    "responses": {
+      "pir-q1-downtime-cost": {
+        "questionId": "pir-q1-downtime-cost",
+        "mode": "text",
+        "textResponse": "Özel contaların gelmesi 3-4 hafta sürüyor ve hat duruşları ciddi maliyet yaratıyor.",
+        "transcript": "Özel contaların gelmesi 3-4 hafta sürüyor ve hat duruşları ciddi maliyet yaratıyor.",
+        "sentiment": "positive",
+        "summary": "Katılımcı asenkron sesli doğrulama modelinin randevu bulma sorununu çözeceğini belirtti.",
+        "isJunk": false
+      }
+    },
+    "feedback": {
+      "rating": 5,
+      "tags": [
+        "Hızlı ve pratikti"
+      ]
+    },
+    "status": "completed"
+  }
+]

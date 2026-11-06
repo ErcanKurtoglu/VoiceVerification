@@ -37,7 +37,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
 
   const storageKey = `voice_verification_session_${project.id}`;
 
-  // İlk yüklemede initialParticipant'ı kontrol et
+  // İlk yüklemede initialTracking'i kontrol et
   useEffect(() => {
     if (initialTracking) {
       setTracking(initialTracking);
@@ -72,11 +72,22 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
   ) => {
     if (!updatedParticipant) return;
     try {
+      // audioBlob'u yerel depolama için serialize edilebilir formatta tut
+      const cleanResponses: Record<string, Partial<QuestionResponse>> = {};
+      for (const [k, v] of Object.entries(updatedResponses)) {
+        cleanResponses[k] = {
+          questionId: v.questionId,
+          mode: v.mode,
+          durationSec: v.durationSec,
+          textResponse: v.textResponse,
+        };
+      }
+
       const sessionDraft = {
         projectId: project.id,
         participant: updatedParticipant,
         tracking: updatedTracking || tracking,
-        responses: updatedResponses,
+        responses: cleanResponses,
         status: "in_progress",
         updatedAt: new Date().toISOString(),
       };
@@ -116,6 +127,21 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     if (!participant) return;
     setIsSubmitting(true);
 
+    // Blob nesneleri JSON serialize edilemediği için temizle
+    const serializableResponses: Record<string, QuestionResponse> = {};
+    for (const [qId, resp] of Object.entries(responses)) {
+      serializableResponses[qId] = {
+        questionId: resp.questionId,
+        mode: resp.mode,
+        durationSec: resp.durationSec,
+        textResponse: resp.textResponse,
+        transcript: resp.transcript,
+        sentiment: resp.sentiment,
+        summary: resp.summary,
+        isJunk: resp.isJunk,
+      };
+    }
+
     const sessionId = generateUUID();
     const sessionData: InterviewSession = {
       id: sessionId,
@@ -124,20 +150,23 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
       completedAt: new Date().toISOString(),
       participant,
       tracking,
-      responses,
+      responses: serializableResponses,
       feedback,
       status: "completed",
     };
 
     try {
-      // Sunucuya gönderme
-      await fetch("/api/analyze", {
+      const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           session: sessionData,
         }),
       });
+
+      if (!res.ok) {
+        console.error("API hatası:", await res.text());
+      }
 
       // Yerel taslağı temizle
       localStorage.removeItem(storageKey);
@@ -167,6 +196,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
 
       {step === "questions" && project.questions[currentQuestionIndex] && (
         <QuestionCard
+          key={project.questions[currentQuestionIndex].id} // Her yeni soruda mikrofon ve ses state'ini sıfırdan oluştur
           question={project.questions[currentQuestionIndex]}
           questionNumber={currentQuestionIndex + 1}
           totalQuestions={project.questions.length}
