@@ -1,16 +1,28 @@
 import { z } from "zod";
 
-// --- Project Types ---
-export interface ProjectConfig {
-  id: string;
-  title: string;
+// --- Tracking & Attribution Types ---
+export interface TrackingData {
+  uid?: string; // Katılımcı ID (örn: usr_9942)
+  ref?: string; // Referans (örn: linkedin, email_blast, direct)
+  source?: string; // Kaynak
+  campaign?: string; // Kampanya adı
+}
+
+// --- Survey / Project Types ---
+export interface SurveyConfig {
+  id: string; // Unique Identifier (örn: "print-it-right")
   slug: string;
+  title: string;
   tagline: string;
   description: string;
+  targetAudience: string;
   estimatedMinutes: number;
   aiContext: string; // Mini AI için bağlam bilgisi
+  tips?: string[]; // Platform kullanım ipuçları
   questions: Question[];
 }
+
+export type ProjectConfig = SurveyConfig;
 
 export interface Question {
   id: string;
@@ -62,10 +74,11 @@ export type FeedbackData = z.infer<typeof FeedbackSchema>;
 // --- Full Session Submission ---
 export interface InterviewSession {
   id: string;
-  projectId: string;
+  projectId: string; // Survey ID
   startedAt: string;
   completedAt?: string;
   participant: ParticipantData;
+  tracking?: TrackingData;
   responses: Record<string, QuestionResponse>;
   feedback?: FeedbackData;
   status: "in_progress" | "completed" | "abandoned";

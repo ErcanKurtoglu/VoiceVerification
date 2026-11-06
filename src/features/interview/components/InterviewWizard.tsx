@@ -1,7 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { ProjectConfig, ParticipantData, QuestionResponse, FeedbackData, InterviewSession } from "@/types/interview";
+import {
+  SurveyConfig,
+  ParticipantData,
+  QuestionResponse,
+  FeedbackData,
+  InterviewSession,
+  TrackingData,
+} from "@/types/interview";
 import { OnboardingForm } from "./OnboardingForm";
 import { QuestionCard } from "./QuestionCard";
 import { FeedbackForm } from "@/features/feedback/components/FeedbackForm";
@@ -9,28 +16,30 @@ import { CompletionCard } from "./CompletionCard";
 import { generateUUID } from "@/lib/utils";
 
 interface InterviewWizardProps {
-  project: ProjectConfig;
+  project: SurveyConfig;
 }
 
 type WizardStep = "onboarding" | "questions" | "feedback" | "completed";
-
-const STORAGE_KEY = "voice_verification_active_session";
 
 export const InterviewWizard: React.FC<InterviewWizardProps> = ({ project }) => {
   const [step, setStep] = useState<WizardStep>("onboarding");
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [participant, setParticipant] = useState<ParticipantData | null>(null);
+  const [tracking, setTracking] = useState<TrackingData | undefined>(undefined);
   const [responses, setResponses] = useState<Record<string, QuestionResponse>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const storageKey = `voice_verification_session_${project.id}`;
 
   // Oturum Direnci: Sayfa yenilenirse taslağı geri yükleme
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(storageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed.projectId === project.id && parsed.status === "in_progress") {
           setParticipant(parsed.participant);
+          setTracking(parsed.tracking);
           setResponses(parsed.responses || {});
           if (parsed.participant) {
             setStep("questions");
@@ -40,31 +49,37 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({ project }) => 
     } catch {
       // LocalStorage hatası olursa sessizce geç
     }
-  }, [project.id]);
+  }, [project.id, storageKey]);
 
   // Taslağı kaydetme
-  const saveDraft = (updatedParticipant: ParticipantData | null, updatedResponses: Record<string, QuestionResponse>) => {
+  const saveDraft = (
+    updatedParticipant: ParticipantData | null,
+    updatedResponses: Record<string, QuestionResponse>,
+    updatedTracking?: TrackingData
+  ) => {
     if (!updatedParticipant) return;
     try {
       const sessionDraft = {
         projectId: project.id,
         participant: updatedParticipant,
+        tracking: updatedTracking || tracking,
         responses: updatedResponses,
         status: "in_progress",
         updatedAt: new Date().toISOString(),
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionDraft));
+      localStorage.setItem(storageKey, JSON.stringify(sessionDraft));
     } catch {
       // Storage dolu veya kapalıysa sessizce geç
     }
   };
 
   // Adım 1: Onboarding Tamamlandı
-  const handleOnboardingSubmit = (data: ParticipantData) => {
+  const handleOnboardingSubmit = (data: ParticipantData, trackingData?: TrackingData) => {
     setParticipant(data);
+    setTracking(trackingData);
     setStep("questions");
     setCurrentQuestionIndex(0);
-    saveDraft(data, responses);
+    saveDraft(data, responses, trackingData);
   };
 
   // Adım 2: Soru Cevaplandı
@@ -74,7 +89,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({ project }) => 
       [response.questionId]: response,
     };
     setResponses(updatedResponses);
-    saveDraft(participant, updatedResponses);
+    saveDraft(participant, updatedResponses, tracking);
 
     if (currentQuestionIndex < project.questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
@@ -95,6 +110,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({ project }) => 
       startedAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),
       participant,
+      tracking,
       responses,
       feedback,
       status: "completed",
@@ -111,11 +127,10 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({ project }) => 
       });
 
       // Yerel taslağı temizle
-      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(storageKey);
       setStep("completed");
     } catch (err) {
       console.error("Gönderim hatası:", err);
-      // Hata olsa bile kullanıcıya teşekkür ekranını göster (Offline-first dayanıklılık)
       setStep("completed");
     } finally {
       setIsSubmitting(false);
@@ -123,8 +138,9 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({ project }) => 
   };
 
   const handleReset = () => {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(storageKey);
     setParticipant(null);
+    setTracking(undefined);
     setResponses({});
     setCurrentQuestionIndex(0);
     setStep("onboarding");
@@ -152,10 +168,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({ project }) => 
       )}
 
       {step === "completed" && participant && (
-        <CompletionCard
-          participant={participant}
-          onReset={handleReset}
-        />
+        <CompletionCard participant={participant} onReset={handleReset} />
       )}
     </div>
   );

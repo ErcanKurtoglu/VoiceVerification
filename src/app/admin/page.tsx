@@ -14,9 +14,11 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
+  Tag,
+  Link2,
 } from "lucide-react";
 import { InterviewSession } from "@/types/interview";
-import { DEFAULT_PROJECT } from "@/lib/config";
+import { getSurveyById } from "@/surveys";
 
 export default function AdminPage() {
   const [sessions, setSessions] = useState<InterviewSession[]>([]);
@@ -49,7 +51,9 @@ export default function AdminPage() {
         ).toFixed(1)
       : "5.0";
 
-  const totalValid = sessions.filter((s) => !Object.values(s.responses).some((r) => r.isJunk)).length;
+  const totalValid = sessions.filter(
+    (s) => !Object.values(s.responses).some((r) => r.isJunk)
+  ).length;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8">
@@ -67,11 +71,11 @@ export default function AdminPage() {
               <h1 className="text-xl md:text-2xl font-bold tracking-tight text-white flex items-center gap-2">
                 <span>Doğrulama & Görüşme Raporu</span>
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-mono">
-                  Yönetici Paneli
+                  Yönetici & Tracking Paneli
                 </span>
               </h1>
               <p className="text-xs text-slate-400">
-                {DEFAULT_PROJECT.title}
+                Tüm aktif anket instance&apos;ları ve izlenen katılımcı kayıtları
               </p>
             </div>
           </div>
@@ -87,10 +91,10 @@ export default function AdminPage() {
             </button>
 
             <Link
-              href="/"
+              href="/s/print-it-right"
               className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition-all shadow-md"
             >
-              + Yeni Yanıt Ekle
+              + Print It Right Anketini Aç
             </Link>
           </div>
         </div>
@@ -123,7 +127,9 @@ export default function AdminPage() {
             </div>
             <div>
               <span className="text-xs text-slate-400">Doğrulanmış Kaliteli Veri</span>
-              <h3 className="text-2xl font-bold text-white mt-0.5">{totalValid} / {totalSessions}</h3>
+              <h3 className="text-2xl font-bold text-white mt-0.5">
+                {totalValid} / {totalSessions}
+              </h3>
             </div>
           </div>
         </div>
@@ -132,19 +138,20 @@ export default function AdminPage() {
         <div className="rounded-3xl bg-slate-900/80 border border-slate-800 p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base font-semibold text-white">
-              Görüşme Kayıtları & AI Deşifreleri ({sessions.length})
+              Görüşme Kayıtları, Tracking & AI Deşifreleri ({sessions.length})
             </h2>
           </div>
 
           {sessions.length === 0 ? (
             <div className="py-12 text-center text-slate-500 text-xs">
-              Henüz tamamlanmış bir görüşme bulunmuyor. Ana sayfaya giderek ilk test görüşmenizi yapabilirsiniz.
+              Henüz tamamlanmış bir görüşme bulunmuyor. Anket bağlantısına giderek ilk test görüşmenizi yapabilirsiniz.
             </div>
           ) : (
             <div className="space-y-4">
               {sessions.map((s) => {
                 const isExpanded = expandedSessionId === s.id;
                 const hasJunk = Object.values(s.responses).some((r) => r.isJunk);
+                const currentSurvey = getSurveyById(s.projectId);
 
                 return (
                   <div
@@ -161,10 +168,28 @@ export default function AdminPage() {
                           {s.participant.fullName.slice(0, 2).toUpperCase()}
                         </div>
                         <div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             <h4 className="text-sm font-semibold text-white">
                               {s.participant.fullName}
                             </h4>
+
+                            {/* Survey Etiketi */}
+                            <span className="px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-mono">
+                              {currentSurvey.title.split(":")[0]}
+                            </span>
+
+                            {/* Tracking Rozetleri */}
+                            {s.tracking?.uid && (
+                              <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-mono flex items-center gap-1">
+                                <Tag className="w-2.5 h-2.5" /> {s.tracking.uid}
+                              </span>
+                            )}
+                            {s.tracking?.ref && (
+                              <span className="px-2 py-0.5 rounded-md bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[10px] font-mono flex items-center gap-1">
+                                <Link2 className="w-2.5 h-2.5" /> {s.tracking.ref}
+                              </span>
+                            )}
+
                             {hasJunk && (
                               <span className="px-2 py-0.5 rounded bg-red-500/10 text-red-400 text-[10px] font-medium flex items-center gap-1">
                                 <AlertTriangle className="w-3 h-3" /> Şüpheli Veri
@@ -204,7 +229,7 @@ export default function AdminPage() {
                     {isExpanded && (
                       <div className="p-4 border-t border-slate-800 bg-slate-900/30 space-y-4">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                          {DEFAULT_PROJECT.questions.map((q, idx) => {
+                          {currentSurvey.questions.map((q, idx) => {
                             const resp = s.responses[q.id];
                             return (
                               <div
