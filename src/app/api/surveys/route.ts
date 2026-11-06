@@ -66,7 +66,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Slug ve ID oluşturma
     const cleanPin = accessPin.trim().toUpperCase();
     const slug = title
       .toLowerCase()
@@ -128,6 +127,99 @@ export async function POST(req: NextRequest) {
       accessPin: cleanPin,
       survey: payload,
     });
+  } catch (err: unknown) {
+    const error = err as Error;
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function PATCH(req: NextRequest) {
+  try {
+    if (!isSupabaseConfigured() || !supabaseAdmin) {
+      return NextResponse.json(
+        { error: "Supabase bağlantısı yapılandırılmamış." },
+        { status: 500 }
+      );
+    }
+
+    const body = await req.json();
+    const { id, accessPin, title, description, tagline, targetAudience, estimatedMinutes, aiContext } = body;
+
+    if (!id) {
+      return NextResponse.json({ error: "Anket ID zorunludur." }, { status: 400 });
+    }
+
+    const updates: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+
+    if (accessPin) {
+      const cleanPin = accessPin.trim().toUpperCase();
+      // PIN çakışma kontrolü
+      const { data: existingPin } = await supabaseAdmin
+        .from("surveys")
+        .select("id, access_pin")
+        .eq("access_pin", cleanPin)
+        .maybeSingle();
+
+      if (existingPin && existingPin.id !== id) {
+        return NextResponse.json(
+          { error: `"${cleanPin}" PIN kodu zaten başka bir ankete aittir.` },
+          { status: 400 }
+        );
+      }
+      updates.access_pin = cleanPin;
+    }
+
+    if (title) updates.title = title.trim();
+    if (description) updates.description = description.trim();
+    if (tagline) updates.tagline = tagline.trim();
+    if (targetAudience !== undefined) updates.target_audience = targetAudience.trim();
+    if (estimatedMinutes !== undefined) updates.estimated_minutes = Number(estimatedMinutes);
+    if (aiContext !== undefined) updates.ai_context = aiContext.trim();
+
+    const { error } = await supabaseAdmin
+      .from("surveys")
+      .update(updates)
+      .eq("id", id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, updated: updates });
+  } catch (err: unknown) {
+    const error = err as Error;
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest) {
+  try {
+    if (!isSupabaseConfigured() || !supabaseAdmin) {
+      return NextResponse.json(
+        { error: "Supabase bağlantısı yapılandırılmamış." },
+        { status: 500 }
+      );
+    }
+
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ error: "Silinecek anket ID'si belirtilmedi." }, { status: 400 });
+    }
+
+    const { error } = await supabaseAdmin
+      .from("surveys")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, deletedId: id });
   } catch (err: unknown) {
     const error = err as Error;
     return NextResponse.json({ error: error.message }, { status: 500 });

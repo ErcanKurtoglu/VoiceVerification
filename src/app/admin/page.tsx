@@ -82,6 +82,18 @@ export default function AdminPage() {
   const [surveySaveError, setSurveySaveError] = useState("");
   const [surveySaveSuccess, setSurveySaveSuccess] = useState("");
 
+  // PIN Değiştirme Modal State
+  const [editingPinSurvey, setEditingPinSurvey] = useState<{ id: string; title: string; currentPin: string } | null>(null);
+  const [newPinValue, setNewPinValue] = useState("");
+  const [isUpdatingPin, setIsUpdatingPin] = useState(false);
+  const [pinUpdateError, setPinUpdateError] = useState("");
+  const [pinUpdateSuccess, setPinUpdateSuccess] = useState("");
+
+  // Anket Silme Modal State
+  const [deletingSurvey, setDeletingSurvey] = useState<{ id: string; title: string } | null>(null);
+  const [isDeletingSurvey, setIsDeletingSurvey] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
   useEffect(() => {
     const authStatus = sessionStorage.getItem("vv_admin_auth");
     if (authStatus === "true") {
@@ -234,6 +246,85 @@ export default function AdminPage() {
       setSurveySaveError(error.message);
     } finally {
       setIsSavingSurvey(false);
+    }
+  };
+
+  // PIN Güncelleme
+  const handleOpenPinModal = (surveyId: string, title: string, currentPin: string) => {
+    setEditingPinSurvey({ id: surveyId, title, currentPin });
+    setNewPinValue(currentPin);
+    setPinUpdateError("");
+    setPinUpdateSuccess("");
+  };
+
+  const handleUpdatePin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPinSurvey) return;
+
+    const cleanPin = newPinValue.trim().toUpperCase();
+    if (!cleanPin) {
+      setPinUpdateError("Lütfen geçerli bir PIN kodu giriniz.");
+      return;
+    }
+
+    setIsUpdatingPin(true);
+    setPinUpdateError("");
+    setPinUpdateSuccess("");
+
+    try {
+      const res = await fetch("/api/surveys", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingPinSurvey.id,
+          accessPin: cleanPin,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "PIN güncellenemedi.");
+      }
+
+      setPinUpdateSuccess(`PIN kodu başarıyla "${cleanPin}" olarak güncellendi!`);
+      await fetchSurveys();
+
+      setTimeout(() => {
+        setEditingPinSurvey(null);
+        setPinUpdateSuccess("");
+      }, 1400);
+    } catch (err: unknown) {
+      const error = err as Error;
+      setPinUpdateError(error.message);
+    } finally {
+      setIsUpdatingPin(false);
+    }
+  };
+
+  // Anket Silme
+  const handleDeleteSurvey = async () => {
+    if (!deletingSurvey) return;
+
+    setIsDeletingSurvey(true);
+    setDeleteError("");
+
+    try {
+      const res = await fetch(`/api/surveys?id=${encodeURIComponent(deletingSurvey.id)}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Anket silinemedi.");
+      }
+
+      await fetchSurveys();
+      setDeletingSurvey(null);
+    } catch (err: unknown) {
+      const error = err as Error;
+      setDeleteError(error.message);
+    } finally {
+      setIsDeletingSurvey(false);
     }
   };
 
@@ -724,14 +815,17 @@ export default function AdminPage() {
                           className="p-4 flex flex-col md:flex-row md:items-center justify-between gap-3 cursor-pointer hover:bg-slate-900/50"
                         >
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 text-indigo-300 font-bold flex items-center justify-center text-xs">
+                            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 text-indigo-300 font-bold flex items-center justify-center text-xs shrink-0">
                               {s.participant.fullName.slice(0, 2).toUpperCase()}
                             </div>
                             <div>
                               <div className="flex flex-wrap items-center gap-2">
-                                <h4 className="text-sm font-semibold text-white">
-                                  {s.participant.fullName}
-                                </h4>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[11px] font-medium text-slate-400">İsim Soyisim:</span>
+                                  <h4 className="text-sm font-bold text-white tracking-wide">
+                                    {s.participant.fullName}
+                                  </h4>
+                                </div>
 
                                 <span className="px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-[10px] font-mono">
                                   {currentSurvey?.title?.split(":")[0] || s.projectId}
@@ -789,6 +883,26 @@ export default function AdminPage() {
                         {/* Detay Paneli */}
                         {isExpanded && (
                           <div className="p-4 border-t border-slate-900 bg-slate-900/30 space-y-4">
+                            {/* Katılımcı Bilgi Kartı */}
+                            <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                              <div>
+                                <span className="text-slate-500 text-[10px] uppercase font-bold block mb-0.5">İsim Soyisim</span>
+                                <span className="font-semibold text-white">{s.participant.fullName}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-500 text-[10px] uppercase font-bold block mb-0.5">Firma / Kurum</span>
+                                <span className="font-medium text-slate-300">{s.participant.company}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-500 text-[10px] uppercase font-bold block mb-0.5">Unvan / Rol</span>
+                                <span className="font-medium text-slate-300">{s.participant.title}</span>
+                              </div>
+                              <div>
+                                <span className="text-slate-500 text-[10px] uppercase font-bold block mb-0.5">E-posta Adresi</span>
+                                <span className="font-medium text-slate-300">{s.participant.email}</span>
+                              </div>
+                            </div>
+
                             <h5 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                               Soru Bazlı Ses Kayıtları & Gemini 2.5 Flash Deşifresi
                             </h5>
@@ -911,21 +1025,47 @@ export default function AdminPage() {
                       </div>
                     </div>
 
-                    <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
-                      <span className="text-[11px] text-emerald-400 flex items-center gap-1">
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Yayında (Aktif)
-                      </span>
-                      <button
-                        onClick={() => {
-                          setInviteSurveyId(sv.id);
-                          setIsGeneratorOpen(true);
-                          window.scrollTo({ top: 0, behavior: "smooth" });
-                        }}
-                        className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition-all flex items-center gap-1"
-                      >
-                        <Link2 className="w-3.5 h-3.5 text-indigo-400" />
-                        <span>Özel Link Üret</span>
-                      </button>
+                    <div className="pt-3 border-t border-slate-800 flex items-center justify-between flex-wrap gap-2 text-xs">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
+                          <CheckCircle2 className="w-3.5 h-3.5" /> Aktif
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleOpenPinModal(sv.id, sv.title, pin)}
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-medium transition-all flex items-center gap-1 border border-slate-700 active:scale-95"
+                          title="Giriş PIN Kodunu Güncelle"
+                        >
+                          <KeyRound className="w-3 h-3 text-indigo-400" />
+                          <span>PIN Değiştir</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setInviteSurveyId(sv.id);
+                            setIsGeneratorOpen(true);
+                            window.scrollTo({ top: 0, behavior: "smooth" });
+                          }}
+                          className="px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] font-medium transition-all flex items-center gap-1 shadow-sm active:scale-95"
+                          title="Özel Davet Linki Üret"
+                        >
+                          <Link2 className="w-3 h-3" />
+                          <span>Link Üret</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setDeletingSurvey({ id: sv.id, title: sv.title });
+                            setDeleteError("");
+                          }}
+                          className="p-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 text-[11px] transition-all border border-red-500/20 active:scale-95"
+                          title="Anketi Sil"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
@@ -1160,6 +1300,162 @@ export default function AdminPage() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* PIN GÜNCELLEME MODALI */}
+        {editingPinSurvey && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+            <div className="w-full max-w-md p-6 rounded-3xl bg-slate-900 border border-slate-800 text-slate-100 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+                    <KeyRound className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Anket PIN Kodunu Güncelle</h3>
+                    <p className="text-[11px] text-slate-400 truncate max-w-[240px]">
+                      {editingPinSurvey.title}
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setEditingPinSurvey(null)}
+                  className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {pinUpdateSuccess && (
+                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{pinUpdateSuccess}</span>
+                </div>
+              )}
+
+              {pinUpdateError && (
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{pinUpdateError}</span>
+                </div>
+              )}
+
+              <form onSubmit={handleUpdatePin} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Mevcut PIN Kodu
+                  </label>
+                  <div className="px-3.5 py-2 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-slate-400">
+                    {editingPinSurvey.currentPin}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1.5">
+                    Yeni PIN Kodu <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={newPinValue}
+                    onChange={(e) => setNewPinValue(e.target.value.toUpperCase())}
+                    placeholder="Örn: PIR-2026-EXPO"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 font-mono text-sm text-white uppercase tracking-wider focus:outline-none focus:border-indigo-500"
+                    autoFocus
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    * Büyük harf ve rakamlar önerilir. PIN güncellendiğinde landing page üzerinden anında geçerli olur.
+                  </p>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800 flex items-center justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setEditingPinSurvey(null)}
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium"
+                  >
+                    Vazgeç
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={isUpdatingPin}
+                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md active:scale-95 disabled:opacity-50"
+                  >
+                    {isUpdatingPin ? (
+                      <>
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <span>Güncelleniyor...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>PIN&apos;i Güncelle</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* ANKET SİLME ONAY MODALI */}
+        {deletingSurvey && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+            <div className="w-full max-w-sm p-6 rounded-3xl bg-slate-900 border border-slate-800 text-slate-100 shadow-2xl space-y-4">
+              <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center bg-red-500/10 text-red-400 border border-red-500/20">
+                <Trash2 className="w-6 h-6" />
+              </div>
+
+              <div className="text-center space-y-1">
+                <h3 className="text-base font-bold text-white">Anketi Sil</h3>
+                <p className="text-xs text-slate-400">
+                  <strong className="text-white">&quot;{deletingSurvey.title}&quot;</strong> anketini yayından kaldırmak istediğinizden emin misiniz?
+                </p>
+              </div>
+
+              {deleteError && (
+                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 shrink-0" />
+                  <span>{deleteError}</span>
+                </div>
+              )}
+
+              <p className="text-[11px] text-slate-500 text-center bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
+                * Bu işlem anketi yayından kaldırır ve yeni katılımcı girişlerini engeller.
+              </p>
+
+              <div className="pt-2 flex items-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setDeletingSurvey(null)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium transition-all"
+                >
+                  İptal
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleDeleteSurvey}
+                  disabled={isDeletingSurvey}
+                  className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-semibold flex items-center justify-center gap-1.5 shadow-md transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {isDeletingSurvey ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      <span>Siliniyor...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Evet, Sil</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         )}
