@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Users,
@@ -31,11 +32,13 @@ import {
   KeyRound,
   Mic,
   FileText,
+  LogOut,
 } from "lucide-react";
 import { InterviewSession, SurveyConfig, Question } from "@/types/interview";
 import { getAllSurveys, PRINT_IT_RIGHT_SURVEY } from "@/surveys";
 
-export default function AdminPage() {
+function AdminDashboardContent() {
+  const searchParams = useSearchParams();
   const [sessions, setSessions] = useState<InterviewSession[]>([]);
   const [surveysList, setSurveysList] = useState<SurveyConfig[]>(getAllSurveys());
   const [rawSurveysData, setRawSurveysData] = useState<any[]>([]);
@@ -45,10 +48,9 @@ export default function AdminPage() {
   // Tab: "results" | "surveys"
   const [activeTab, setActiveTab] = useState<"results" | "surveys">("results");
 
-  // Güvenlik & PIN Koruması
+  // Gizli URL Parametresi Koruması (?p=123ercan123)
   const [isAuthorized, setIsAuthorized] = useState(false);
-  const [pinInput, setPinInput] = useState("");
-  const [pinError, setPinError] = useState(false);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
 
   // Filtreleme & Arama
   const [searchQuery, setSearchQuery] = useState("");
@@ -97,21 +99,25 @@ export default function AdminPage() {
   const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
-    const authStatus = sessionStorage.getItem("vv_admin_auth");
-    if (authStatus === "true") {
-      setIsAuthorized(true);
-    }
-  }, []);
+    const ADMIN_SECRET = process.env.NEXT_PUBLIC_ADMIN_SECRET || "123ercan123";
+    const pParam = searchParams.get("p");
+    const storedSecret = sessionStorage.getItem("vv_admin_secret");
 
-  const handlePinSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (pinInput.trim() === "2026") {
-      sessionStorage.setItem("vv_admin_auth", "true");
+    if (pParam === ADMIN_SECRET) {
+      sessionStorage.setItem("vv_admin_secret", ADMIN_SECRET);
       setIsAuthorized(true);
-      setPinError(false);
+    } else if (storedSecret === ADMIN_SECRET) {
+      setIsAuthorized(true);
     } else {
-      setPinError(true);
+      setIsAuthorized(false);
     }
+    setIsAuthChecking(false);
+  }, [searchParams]);
+
+  const handleLogout = () => {
+    sessionStorage.removeItem("vv_admin_secret");
+    setIsAuthorized(false);
+    window.location.href = "/";
   };
 
   const fetchSurveys = async () => {
@@ -412,44 +418,38 @@ export default function AdminPage() {
     URL.revokeObjectURL(url);
   };
 
-  // 1. PIN Koruması Ekranı
+  // 1. Gizli URL Parametresi Koruması Ekranı (?p=123ercan123)
   if (!isAuthorized) {
+    if (isAuthChecking) {
+      return (
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-slate-600" />
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4">
-        <div className="w-full max-w-sm p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-2xl text-center space-y-4">
-          <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-            <Lock className="w-6 h-6" />
+        <div className="w-full max-w-sm p-8 rounded-3xl bg-slate-900 border border-slate-800 text-center space-y-4 shadow-2xl animate-fadeIn">
+          <div className="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center bg-slate-800 text-slate-400 border border-slate-700">
+            <Lock className="w-6 h-6 text-slate-500" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-white">Yönetici Girişi</h2>
-            <p className="text-xs text-slate-400 mt-1">
-              Araştırma ve transkript sonuçlarını görüntülemek için PIN giriniz.
+            <h2 className="text-lg font-bold text-white">404 - Sayfa Bulunamadı</h2>
+            <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">
+              Aradığınız sayfa mevcut değil veya bu alana erişim yetkiniz bulunmuyor.
             </p>
           </div>
 
-          <form onSubmit={handlePinSubmit} className="space-y-3">
-            <input
-              type="password"
-              value={pinInput}
-              onChange={(e) => setPinInput(e.target.value)}
-              placeholder="PIN Kodu (Varsayılan: 2026)"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-center text-sm text-white tracking-widest focus:outline-none focus:border-indigo-500"
-              autoFocus
-            />
-            {pinError && (
-              <span className="text-[11px] text-red-400 block">Hatalı PIN. Tekrar deneyiniz.</span>
-            )}
-            <button
-              type="submit"
-              className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md transition-all active:scale-95"
+          <div className="pt-2">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition-all border border-slate-700"
             >
-              Paneli Aç
-            </button>
-          </form>
-
-          <Link href="/" className="inline-block text-[11px] text-slate-500 hover:text-slate-400">
-            ← Ana Sayfaya Dön
-          </Link>
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Ana Sayfaya Dön</span>
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -536,6 +536,15 @@ export default function AdminPage() {
             >
               <RefreshCw className={`w-3.5 h-3.5 ${isLoading ? "animate-spin text-indigo-400" : ""}`} />
               <span>Yenile</span>
+            </button>
+
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-red-500/10 border border-slate-800 text-slate-400 hover:text-red-400 text-xs font-medium transition-all"
+              title="Yönetici Oturumunu Kapat"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Çıkış</span>
             </button>
           </div>
         </div>
@@ -1517,5 +1526,19 @@ export default function AdminPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 animate-spin text-slate-600" />
+        </div>
+      }
+    >
+      <AdminDashboardContent />
+    </Suspense>
   );
 }

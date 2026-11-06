@@ -62,18 +62,16 @@ export const CompletionCard: React.FC<CompletionCardProps> = ({
       {/* Aksiyon Butonları */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
         <Link
-          href="/admin"
-          className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-all shadow-md"
+          href="/"
+          className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium flex items-center justify-center gap-1.5 transition-all border border-slate-700 shadow-md"
         >
-          <FileText className="w-4 h-4" />
-          <span>Yönetici Analiz Raporunu İncele</span>
-          <ArrowRight className="w-3.5 h-3.5" />
+          <span>Ana Sayfaya Dön</span>
         </Link>
 
         <button
           type="button"
           onClick={onReset}
-          className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs font-medium flex items-center justify-center gap-1.5 transition-all"
+          className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium flex items-center justify-center gap-1.5 transition-all shadow-md"
         >
           <RefreshCcw className="w-3.5 h-3.5" />
           <span>Yeni Bir Yanıt Başlat</span>

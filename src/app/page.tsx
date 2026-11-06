@@ -119,16 +119,6 @@ export default function LandingPage() {
             <span className="text-[10px] text-slate-400 font-medium">Asenkron Sesli Doğrulama Altyapısı</span>
           </div>
         </div>
-
-        <div className="flex items-center gap-3">
-          <Link
-            href="/admin"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-slate-800 text-slate-300 hover:text-white text-xs font-medium transition-all"
-          >
-            <BarChart3 className="w-4 h-4 text-indigo-400" />
-            <span>Yönetici Paneli</span>
-          </Link>
-        </div>
       </header>
 
       {/* 2. Hero Bölümü & PIN ile Giriş Kartı */}
