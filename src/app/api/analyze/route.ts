@@ -25,31 +25,40 @@ export async function POST(req: NextRequest) {
       const qTitle = q ? q.title : "Genel Soru";
 
       try {
-        // Kesinleşen ses kaydını indir ve tek seferde transkribe et
-        if (resp.audioUrl) {
+        let base64 = resp.audioBase64;
+        let mimeType = "audio/webm";
+
+        // Eğer doğrudan istemci belleğinden base64 gelmemişse ve geçmiş oturum gibi audioUrl varsa oradan al
+        if (!base64 && resp.audioUrl) {
           try {
             const audioRes = await fetch(resp.audioUrl);
             if (audioRes.ok) {
               const arrayBuffer = await audioRes.arrayBuffer();
-              const base64 = Buffer.from(arrayBuffer).toString("base64");
-              const mimeType = audioRes.headers.get("content-type") || "audio/webm";
-
-              const result = await ai.transcribeAudioOrText({
-                questionTitle: qTitle,
-                audioBase64: base64,
-                mimeType,
-              });
-
-              resp.transcript = result.transcript;
-              resp.isJunk = result.isJunk;
+              base64 = Buffer.from(arrayBuffer).toString("base64");
+              const ct = audioRes.headers.get("content-type");
+              if (ct) mimeType = ct;
             }
           } catch (audioErr) {
-            console.error(`Transkript indirme hatası (Soru: ${qId}):`, audioErr);
+            console.error(`Ses indirme hatası (Soru: ${qId}):`, audioErr);
           }
+        }
+
+        if (base64) {
+          const result = await ai.transcribeAudioOrText({
+            questionTitle: qTitle,
+            audioBase64: base64,
+            mimeType,
+          });
+
+          resp.transcript = result.transcript;
+          resp.isJunk = result.isJunk;
         } else if (resp.textResponse) {
           resp.transcript = resp.textResponse.trim();
           resp.isJunk = false;
         }
+
+        // Bulut veritabanını şişirmemek için geçici base64'ü sil; yalnızca hafif ve saf deşifre metnini sakla
+        delete resp.audioBase64;
       } catch (err) {
         console.error(`Transkripsiyon hatası (Soru: ${qId}):`, err);
       }

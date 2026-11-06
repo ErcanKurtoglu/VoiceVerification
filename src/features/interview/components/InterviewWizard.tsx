@@ -109,7 +109,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     saveDraft(data, responses, trackingData);
   };
 
-  // Adım 2: Soru Cevaplandı ve İlerlendi (Otomatik Ses Yedekleme Entegre)
+  // Adım 2: Soru Cevaplandı ve İlerlendi (Tamamen İstemci Hafızasında Tutulur, Gereksiz Yükleme Yapılmaz)
   const handleQuestionSubmit = (response: QuestionResponse) => {
     const updatedResponses = {
       ...responses,
@@ -117,39 +117,6 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     };
     setResponses(updatedResponses);
     saveDraft(participant, updatedResponses, tracking);
-
-    // Ses kaydını arka planda kalıcı depolama alanına yedekle (Hiyerarşik / Takip Edilebilir)
-    if (response.mode === "audio" && response.audioBlob) {
-      const formData = new FormData();
-      formData.append("surveyId", project.id);
-      formData.append("sessionId", activeSessionId);
-      formData.append("questionId", response.questionId);
-      formData.append("audio", response.audioBlob, `${response.questionId}.webm`);
-
-      fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.audioUrl) {
-            setResponses((prev) => {
-              const current = prev[response.questionId];
-              if (!current) return prev;
-              const next = {
-                ...prev,
-                [response.questionId]: {
-                  ...current,
-                  audioUrl: data.audioUrl,
-                },
-              };
-              saveDraft(participant, next, tracking);
-              return next;
-            });
-          }
-        })
-        .catch((err) => console.error("Ses yedekleme hatası:", err));
-    }
 
     if (currentQuestionIndex < project.questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
@@ -171,64 +138,62 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     setCurrentQuestionIndex(project.questions.length - 1);
   };
 
-  // Adım 3: Anket Tamamlandı, Feedback Verildi -> Kesinleşen Yanıtlar Toplu Olarak Transkribe Edilip Supabase'e Gönderilir
+  // Ses Blob'unu Base64 formatına çevirme yardımcısı (Hafif ve bellekte)
+  const blobToBase64 = (blob: Blob): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const res = reader.result as string;
+        const base64 = res.includes(",") ? res.split(",")[1] : res;
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+
+  // Adım 3: Anket Tamamlandı, Feedback Verildi -> Yalnızca Kesinleşen Yanıtlar Deşifre İçin Sunucuya Gönderilir (Depolama Şişmesi Önlenir)
   const handleFeedbackSubmit = async (feedback: FeedbackData) => {
     if (!participant) return;
     setIsSubmitting(true);
 
-    // 1. Son kaydedilmiş yanıtlardan ses dosyası olup henüz yüklenmemiş olanları tamamla
-    const finalResponses = { ...responses };
-    for (const [qId, resp] of Object.entries(finalResponses)) {
-      if (resp.mode === "audio" && resp.audioBlob && !resp.audioUrl) {
-        try {
-          const formData = new FormData();
-          formData.append("surveyId", project.id);
-          formData.append("sessionId", activeSessionId);
-          formData.append("questionId", resp.questionId);
-          formData.append("audio", resp.audioBlob, `${resp.questionId}.webm`);
-
-          const uploadRes = await fetch("/api/upload", {
-            method: "POST",
-            body: formData,
-          });
-          const uploadData = await uploadRes.json();
-          if (uploadData.audioUrl) {
-            resp.audioUrl = uploadData.audioUrl;
-          }
-        } catch (uploadErr) {
-          console.error(`Soru ${qId} ses yükleme tamamlama hatası:`, uploadErr);
-        }
-      }
-    }
-
-    // 2. Blob nesneleri hariç kesinleşmiş verileri hazırla
-    const serializableResponses: Record<string, QuestionResponse> = {};
-    for (const [qId, resp] of Object.entries(finalResponses)) {
-      serializableResponses[qId] = {
-        questionId: resp.questionId,
-        mode: resp.mode,
-        durationSec: resp.durationSec,
-        audioUrl: resp.audioUrl,
-        textResponse: resp.textResponse,
-        sentiment: resp.sentiment,
-        summary: resp.summary,
-        isJunk: resp.isJunk,
-      };
-    }
-
-    const sessionData: InterviewSession = {
-      id: activeSessionId,
-      projectId: project.id,
-      startedAt: new Date().toISOString(),
-      completedAt: new Date().toISOString(),
-      participant,
-      tracking,
-      responses: serializableResponses,
-      feedback,
-      status: "completed",
-    };
-
     try {
+      // 1. Blob nesnelerini doğrudan base64'e dönüştür (Bulut depolamaya dosya yükleyip yer kaplamadan doğrudan Gemini'ye iletilir)
+      const serializableResponses: Record<string, QuestionResponse> = {};
+      for (const [qId, resp] of Object.entries(responses)) {
+        let audioBase64: string | undefined = undefined;
+        if (resp.mode === "audio" && resp.audioBlob) {
+          try {
+            audioBase64 = await blobToBase64(resp.audioBlob);
+          } catch (err) {
+            console.error(`Soru ${qId} ses çevirme hatası:`, err);
+          }
+        }
+
+        serializableResponses[qId] = {
+          questionId: resp.questionId,
+          mode: resp.mode,
+          durationSec: resp.durationSec,
+          audioBase64,
+          audioUrl: resp.audioUrl,
+          textResponse: resp.textResponse,
+          sentiment: resp.sentiment,
+          summary: resp.summary,
+          isJunk: resp.isJunk,
+        };
+      }
+
+      const sessionData: InterviewSession = {
+        id: activeSessionId,
+        projectId: project.id,
+        startedAt: new Date().toISOString(),
+        completedAt: new Date().toISOString(),
+        participant,
+        tracking,
+        responses: serializableResponses,
+        feedback,
+        status: "completed",
+      };
+
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

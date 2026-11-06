@@ -53,6 +53,7 @@ export interface QuestionResponse {
   questionId: string;
   audioBlob?: Blob;
   audioUrl?: string;
+  audioBase64?: string;
   durationSec?: number;
   textResponse?: string;
   mode: "audio" | "text";
