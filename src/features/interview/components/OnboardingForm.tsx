@@ -19,6 +19,7 @@ import {
   SurveyConfig,
   TrackingData,
 } from "@/types/interview";
+import { generateShortId } from "@/lib/utils";
 import { isSpamSubmission } from "@/features/anti-garbage/honeypot";
 import { ConsentModal } from "./ConsentModal";
 
@@ -50,11 +51,19 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({ project, onSubmi
   useEffect(() => {
     if (!searchParams) return;
 
-    // 1. Tracking Parametreleri
-    const uidParam = searchParams.get("uid") || searchParams.get("user_id") || undefined;
+    // 1. Tracking Parametreleri & Otomatik UID Senkronizasyonu
+    let uidParam = searchParams.get("uid") || searchParams.get("user_id") || undefined;
     const refParam = searchParams.get("ref") || searchParams.get("source") || undefined;
     const srcParam = searchParams.get("utm_source") || undefined;
     const campaignParam = searchParams.get("utm_campaign") || undefined;
+
+    // Eğer URL'de UID yoksa, anında tekil bir oturum UID'si üret ve adres çubuğuna yaz
+    if (!uidParam && typeof window !== "undefined") {
+      uidParam = generateShortId("usr");
+      const currentUrl = new URL(window.location.href);
+      currentUrl.searchParams.set("uid", uidParam);
+      window.history.replaceState({}, "", currentUrl.toString());
+    }
 
     setTracking({
       uid: uidParam,

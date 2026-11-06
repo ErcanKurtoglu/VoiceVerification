@@ -21,3 +21,15 @@ export function generateUUID(): string {
     return v.toString(16);
   });
 }
+
+/**
+ * Katılımcı tracking ve URL eşleştirmesi için okunaklı, kısa benzersiz UID üretir (Örn: usr_7a9f2b1c).
+ */
+export function generateShortId(prefix: string = "usr"): string {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  let hash = "";
+  for (let i = 0; i < 8; i++) {
+    hash += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return `${prefix}_${hash}`;
+}

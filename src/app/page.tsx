@@ -15,6 +15,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { getAllSurveys } from "@/surveys";
+import { generateShortId } from "@/lib/utils";
 
 export default function LandingPage() {
   const [accessCode, setAccessCode] = useState("");
@@ -24,12 +25,8 @@ export default function LandingPage() {
     e.preventDefault();
     if (!accessCode.trim()) return;
     const cleanCode = accessCode.trim().toUpperCase();
-    // Kod doğrulaması ile yönlendirme
-    if (cleanCode === "PIR-2026" || cleanCode === "FOOD-SAFE") {
-      window.location.href = `/s/print-it-right?code=${encodeURIComponent(cleanCode)}`;
-    } else {
-      window.location.href = `/s/print-it-right?code=${encodeURIComponent(cleanCode)}`;
-    }
+    const uid = generateShortId("usr");
+    window.location.href = `/s/print-it-right?code=${encodeURIComponent(cleanCode)}&uid=${encodeURIComponent(uid)}`;
   };
 
   return (
