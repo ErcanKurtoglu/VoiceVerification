@@ -25,17 +25,17 @@ export async function POST(req: NextRequest) {
       const qTitle = q ? q.title : "Genel Soru";
 
       try {
-        const analysis = await ai.analyzeAudioOrTextResponse({
+        // Doğrudan ses veya metnin tam deşifresini (transcript) alıyoruz
+        const result = await ai.transcribeAudioOrText({
           questionTitle: qTitle,
           userTextResponse: resp.textResponse,
+          audioBase64: resp.audioBlob ? undefined : undefined, // İleride base64 veya URL
         });
 
-        resp.transcript = analysis.transcript;
-        resp.sentiment = analysis.sentiment;
-        resp.summary = analysis.summary;
-        resp.isJunk = analysis.isJunk;
+        resp.transcript = result.transcript;
+        resp.isJunk = result.isJunk;
       } catch (err) {
-        console.error(`AI analiz hatası (Soru: ${qId}):`, err);
+        console.error(`Transkripsiyon hatası (Soru: ${qId}):`, err);
       }
     }
 

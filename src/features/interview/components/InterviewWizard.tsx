@@ -35,6 +35,9 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
   const [responses, setResponses] = useState<Record<string, QuestionResponse>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Bu görüşmeye ait tekil oturum kimliği (Ses dosyası yedekleme dizini için)
+  const [activeSessionId] = useState<string>(() => generateUUID());
+
   const storageKey = `voice_verification_session_${project.id}`;
 
   // İlk yüklemede initialTracking'i kontrol et
@@ -72,7 +75,6 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
   ) => {
     if (!updatedParticipant) return;
     try {
-      // audioBlob'u yerel depolama için serialize edilebilir formatta tut
       const cleanResponses: Record<string, Partial<QuestionResponse>> = {};
       for (const [k, v] of Object.entries(updatedResponses)) {
         cleanResponses[k] = {
@@ -80,6 +82,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
           mode: v.mode,
           durationSec: v.durationSec,
           textResponse: v.textResponse,
+          audioUrl: v.audioUrl,
         };
       }
 
@@ -106,7 +109,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     saveDraft(data, responses, trackingData);
   };
 
-  // Adım 2: Soru Cevaplandı ve İlerlendi
+  // Adım 2: Soru Cevaplandı ve İlerlendi (Otomatik Ses Yedekleme Entegre)
   const handleQuestionSubmit = (response: QuestionResponse) => {
     const updatedResponses = {
       ...responses,
@@ -114,6 +117,39 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     };
     setResponses(updatedResponses);
     saveDraft(participant, updatedResponses, tracking);
+
+    // Ses kaydını arka planda kalıcı depolama alanına yedekle (Hiyerarşik / Takip Edilebilir)
+    if (response.mode === "audio" && response.audioBlob) {
+      const formData = new FormData();
+      formData.append("surveyId", project.id);
+      formData.append("sessionId", activeSessionId);
+      formData.append("questionId", response.questionId);
+      formData.append("audio", response.audioBlob, `${response.questionId}.webm`);
+
+      fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.audioUrl) {
+            setResponses((prev) => {
+              const current = prev[response.questionId];
+              if (!current) return prev;
+              const next = {
+                ...prev,
+                [response.questionId]: {
+                  ...current,
+                  audioUrl: data.audioUrl,
+                },
+              };
+              saveDraft(participant, next, tracking);
+              return next;
+            });
+          }
+        })
+        .catch((err) => console.error("Ses yedekleme hatası:", err));
+    }
 
     if (currentQuestionIndex < project.questions.length - 1) {
       setCurrentQuestionIndex((prev) => prev + 1);
@@ -140,13 +176,14 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     if (!participant) return;
     setIsSubmitting(true);
 
-    // Blob nesneleri JSON serialize edilemediği için temizle
+    // Blob nesneleri hariç tüm verileri (audioUrl ve transcript dahil) hazırla
     const serializableResponses: Record<string, QuestionResponse> = {};
     for (const [qId, resp] of Object.entries(responses)) {
       serializableResponses[qId] = {
         questionId: resp.questionId,
         mode: resp.mode,
         durationSec: resp.durationSec,
+        audioUrl: resp.audioUrl,
         textResponse: resp.textResponse,
         transcript: resp.transcript,
         sentiment: resp.sentiment,
@@ -155,9 +192,8 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
       };
     }
 
-    const sessionId = generateUUID();
     const sessionData: InterviewSession = {
-      id: sessionId,
+      id: activeSessionId,
       projectId: project.id,
       startedAt: new Date().toISOString(),
       completedAt: new Date().toISOString(),

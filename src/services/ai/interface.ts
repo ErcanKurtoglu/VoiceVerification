@@ -3,6 +3,11 @@ export interface ChatMessage {
   content: string;
 }
 
+export interface TranscribeResult {
+  transcript: string;
+  isJunk: boolean;
+}
+
 export interface AIService {
   chatClarification(params: {
     questionTitle: string;
@@ -12,16 +17,10 @@ export interface AIService {
     projectContext: string;
   }): Promise<string>;
 
-  analyzeAudioOrTextResponse(params: {
+  transcribeAudioOrText(params: {
     questionTitle: string;
     userTextResponse?: string;
     audioBase64?: string;
     mimeType?: string;
-  }): Promise<{
-    transcript?: string;
-    sentiment: "positive" | "neutral" | "negative" | "critical";
-    summary: string;
-    keyPoints: string[];
-    isJunk: boolean;
-  }>;
+  }): Promise<TranscribeResult>;
 }

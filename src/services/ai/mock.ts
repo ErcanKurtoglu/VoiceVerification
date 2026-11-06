@@ -1,4 +1,4 @@
-import { AIService, ChatMessage } from "./interface";
+import { AIService, ChatMessage, TranscribeResult } from "./interface";
 
 export class MockAIService implements AIService {
   async chatClarification(params: {
@@ -10,36 +10,28 @@ export class MockAIService implements AIService {
   }): Promise<string> {
     const q = params.userQuery.toLowerCase();
     if (q.includes("örnek") || q.includes("mesela")) {
-      return `Tabii! Örneğin, yeni bir fintech ürünü geliştirirken sektördeki 10 bankacıyla görüşmek istiyorsunuz; randevu almak haftalar sürebiliyor veya gönderdiğiniz yazılı forma sadece 1 kişi yanıt veriyor. Bu soruda tam olarak bu tür tıkanıklıklarınızı merak ediyoruz.`;
+      return `Tabii! Örneğin, gıda dolum hattınızda özel bir silikon conta veya nozul kırıldığında İtalya'dan gelmesi 3-4 hafta sürebiliyor. Bu soruda tesisinizdeki benzer parça bekleme sürelerini ve yarattığı duruş maliyetlerini öğrenmek istiyoruz.`;
     }
-    return `Bu soruyla amacımız, '${params.questionTitle}' konusunda geçmişte bizzat karşılaştığınız en büyük engeli veya zaman kaybını öğrenmek. Aklınıza gelen somut bir iş tecrübenizi 1-2 cümleyle sesli veya yazılı paylaşabilirsiniz.`;
+    return `Bu soruyla amacımız, '${params.questionTitle}' konusunda sahada bizzat karşılaştığınız en büyük engeli veya zaman kaybını öğrenmek. Aklınıza gelen somut bir iş tecrübenizi 1-2 cümleyle paylaşabilirsiniz.`;
   }
 
-  async analyzeAudioOrTextResponse(params: {
+  async transcribeAudioOrText(params: {
     questionTitle: string;
     userTextResponse?: string;
     audioBase64?: string;
     mimeType?: string;
-  }): Promise<{
-    transcript?: string;
-    sentiment: "positive" | "neutral" | "negative" | "critical";
-    summary: string;
-    keyPoints: string[];
-    isJunk: boolean;
-  }> {
-    const isAudio = Boolean(params.audioBase64);
-    const mockTranscript = isAudio
-      ? "Kullanıcı ses kaydında sektördeki toplantı planlama zorluklarından ve yazılı anketlere yanıt alamamaktan bahsetti. Asenkron sesli bir çözümün takvim baskısını azaltacağını düşünüyor."
-      : (params.userTextResponse || "");
+  }): Promise<TranscribeResult> {
+    if (params.userTextResponse) {
+      return {
+        transcript: params.userTextResponse.trim(),
+        isJunk: false,
+      };
+    }
 
+    // Mock ses transkripti
     return {
-      transcript: mockTranscript,
-      sentiment: "positive",
-      summary: "Katılımcı asenkron sesli doğrulama modelinin randevu bulma sorununu çözeceğini belirtti.",
-      keyPoints: [
-        "Takvim randevuları çok vakit alıyor",
-        "Asenkron sesli geri bildirim sürtünmeyi ciddi oranda azaltıyor",
-      ],
+      transcript:
+        "Tesisimizde özel contaların ve nozulların tedariki yaklaşık 3 haftayı buluyor. Bu süreçte hattın durması günlük ciddi üretim kaybına yol açıyor. Gıdaya uygun sertifikalı 3B parça çözümü olursa duruş maliyetlerimizi ciddi oranda düşürebiliriz.",
       isJunk: false,
     };
   }

@@ -246,21 +246,30 @@ export default function AdminPage() {
 
                                   {resp ? (
                                     <div className="space-y-2 text-slate-300">
+                                      <div className="flex items-center justify-between text-[10px] text-slate-400 font-medium">
+                                        <span>Konuşma Deşifresi (Transcript)</span>
+                                        <span className="text-indigo-400 uppercase">{resp.mode === "audio" ? "🎙️ Sesli" : "✍️ Yazılı"}</span>
+                                      </div>
                                       {resp.transcript ? (
-                                        <p className="text-[11px] bg-slate-950 p-2.5 rounded-lg border border-slate-800/80 italic leading-relaxed">
+                                        <div className="text-[11px] bg-slate-950 p-3 rounded-xl border border-slate-800 leading-relaxed text-slate-200 select-all">
                                           &ldquo;{resp.transcript}&rdquo;
-                                        </p>
+                                        </div>
                                       ) : resp.textResponse ? (
-                                        <p className="text-[11px] bg-slate-950 p-2.5 rounded-lg border border-slate-800/80 leading-relaxed">
+                                        <div className="text-[11px] bg-slate-950 p-3 rounded-xl border border-slate-800 leading-relaxed text-slate-200 select-all">
                                           {resp.textResponse}
-                                        </p>
+                                        </div>
                                       ) : (
-                                        <span className="text-slate-500 italic">Ses kaydı deşifre bekliyor</span>
+                                        <span className="text-slate-500 italic">Deşifre bekleniyor...</span>
                                       )}
 
-                                      {resp.summary && (
-                                        <div className="text-[11px] text-indigo-300">
-                                          <strong>AI Özeti:</strong> {resp.summary}
+                                      {/* Ses Kaydı Oynatıcı (Yedeklenen Gerçek Ses) */}
+                                      {resp.audioUrl && (
+                                        <div className="pt-1.5">
+                                          <audio
+                                            controls
+                                            src={resp.audioUrl}
+                                            className="w-full h-7 rounded-lg"
+                                          />
                                         </div>
                                       )}
                                     </div>
@@ -268,23 +277,6 @@ export default function AdminPage() {
                                     <span className="text-slate-500 italic">Yanıt verilmedi</span>
                                   )}
                                 </div>
-
-                                {resp?.sentiment && (
-                                  <div className="mt-3 pt-2 border-t border-slate-800 flex items-center justify-between">
-                                    <span className="text-[10px] text-slate-400">Duygu:</span>
-                                    <span
-                                      className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                                        resp.sentiment === "positive"
-                                          ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                                          : resp.sentiment === "critical"
-                                          ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
-                                          : "bg-slate-700/40 text-slate-300"
-                                      }`}
-                                    >
-                                      {resp.sentiment.toUpperCase()}
-                                    </span>
-                                  </div>
-                                )}
                               </div>
                             );
                           })}

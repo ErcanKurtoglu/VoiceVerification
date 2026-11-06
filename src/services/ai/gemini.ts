@@ -1,5 +1,5 @@
 import { GoogleGenAI } from "@google/genai";
-import { AIService, ChatMessage } from "./interface";
+import { AIService, ChatMessage, TranscribeResult } from "./interface";
 
 export class GeminiAIService implements AIService {
   private client: GoogleGenAI;
@@ -48,18 +48,20 @@ export class GeminiAIService implements AIService {
     return response.text || "Sorunuzu yanıtlayamadım, lütfen tekrar deneyiniz.";
   }
 
-  async analyzeAudioOrTextResponse(params: {
+  async transcribeAudioOrText(params: {
     questionTitle: string;
     userTextResponse?: string;
     audioBase64?: string;
     mimeType?: string;
-  }): Promise<{
-    transcript?: string;
-    sentiment: "positive" | "neutral" | "negative" | "critical";
-    summary: string;
-    keyPoints: string[];
-    isJunk: boolean;
-  }> {
+  }): Promise<TranscribeResult> {
+    // Eğer katılımcı zaten metin olarak yazdıysa doğrudan metni transkript kabul et
+    if (params.userTextResponse && !params.audioBase64) {
+      return {
+        transcript: params.userTextResponse.trim(),
+        isJunk: false,
+      };
+    }
+
     const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [];
 
     if (params.audioBase64 && params.mimeType) {
@@ -70,24 +72,16 @@ export class GeminiAIService implements AIService {
         },
       });
       parts.push({
-        text: `Lütfen bu ses kaydını dinle ve "${params.questionTitle}" sorusuna verilen yanıt olarak analiz et.`,
-      });
-    } else if (params.userTextResponse) {
-      parts.push({
-        text: `Soru: "${params.questionTitle}"\nKullanıcı Yazılı Yanıtı: "${params.userTextResponse}"`,
+        text: `Bu ses kaydını dinle ve katılımcının söylediklerini harfi harfine, hiçbir kelimeyi ve sektörel/teknik terimi atlamadan düzgün noktalama işaretleriyle tam bir Türkçe metne (transcript) dönüştür.`,
       });
     }
 
     const prompt = `
-      Lütfen bu kullanıcı yanıtını analiz et ve aşağıdaki JSON şemasında çıktı ver:
+      Lütfen çıktıyı sadece şu saf JSON formatında ver:
       {
-        "transcript": "Ses kaydının tam Türkçe deşifresi (eğer ses yoksa boş string)",
-        "sentiment": "positive" | "neutral" | "negative" | "critical",
-        "summary": "1-2 cümlelik özeti",
-        "keyPoints": ["Önemli acı noktası 1", "Önemli fikir 2"],
-        "isJunk": boolean (eğer kayıt sadece anlamsız gürültü, küfür veya rastgele tuş vuruşuysa true, anlamlıysa false)
+        "transcript": "Ses kaydının eksiksiz tam deşifresi",
+        "isJunk": boolean (eğer kayıt sadece anlamsız gürültü, küfür veya fısıltı ise true, anlamlı bir konuşma ise false)
       }
-      Sadece saf JSON formatında cevap ver.
     `;
 
     parts.push({ text: prompt });
@@ -97,6 +91,7 @@ export class GeminiAIService implements AIService {
       contents: [{ role: "user", parts }],
       config: {
         responseMimeType: "application/json",
+        temperature: 0.2, // Yüksek doğruluklu deşifre için düşük sıcaklık
       },
     });
 
@@ -104,17 +99,11 @@ export class GeminiAIService implements AIService {
       const parsed = JSON.parse(response.text || "{}");
       return {
         transcript: parsed.transcript || "",
-        sentiment: parsed.sentiment || "neutral",
-        summary: parsed.summary || "Özet çıkarılamadı.",
-        keyPoints: parsed.keyPoints || [],
         isJunk: Boolean(parsed.isJunk),
       };
     } catch {
       return {
-        transcript: "",
-        sentiment: "neutral",
-        summary: "Analiz tamamlandı.",
-        keyPoints: [],
+        transcript: response.text || "",
         isJunk: false,
       };
     }
