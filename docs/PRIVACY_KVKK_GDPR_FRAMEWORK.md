@@ -18,7 +18,7 @@
 | Veri Kategorisi | Veri Kalemleri | Toplama Amacı | Hukuki Sebep |
 | :--- | :--- | :--- | :--- |
 | **Kimlik Bilgisi** | Ad, Soyad | Katılımcıyı tanımlama, araştırma doğrulama raporunda yetkilendirme | KVKK m.5/1 (Açık Rıza) & GDPR m.6/1(a) |
-| **İletişim Bilgisi** | Kurumsal/Kişisel E-posta, LinkedIn Profil URL'si | Araştırma sonuç raporunu iletme, takip soruları, A/B test geri bildirimi | KVKK m.5/1 (Açık Rıza) |
+| **İletişim Bilgisi** | Kurumsal/Kişisel E-posta, LinkedIn Profil URL'si | Araştırma sonuç raporunu iletme, takip soruları, sektörel doğrulama geri bildirimi | KVKK m.5/1 (Açık Rıza) |
 | **Mesleki Deneyim** | Şirket/Tesis Adı, Unvan/Rol (Bakım Müh., Tesis Md. vb.) | Hedef kitle (B2B persona) segmentasyonu, sektörel doğruluk teyidi | KVKK m.5/2(f) (Meşru Menfaat) |
 | **Ses Verisi** | Mikrofon aracılığıyla kaydedilen ham ses dosyası (`.webm`, `.wav`, `.mp4`) | Yapay zeka ile metne dönüştürme (transkripsiyon), konuşma uzunluğu ve nitelik analizi | **KVKK m.5/1 (Özel Açık Rıza)** |
 | **Metin & Anket Yanıtları** | Sesin deşifre edilmiş metni veya yazılı yanıt formu içeriği | Ürün-pazar uyumu (PMF) analizi, gıda sertifikasyonu ve duruş maliyeti modelleme | KVKK m.5/1 & m.5/2(f) |

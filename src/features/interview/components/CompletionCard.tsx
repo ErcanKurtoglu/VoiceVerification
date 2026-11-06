@@ -49,10 +49,12 @@ export const CompletionCard: React.FC<CompletionCardProps> = ({
         </div>
         <div>
           <h4 className="text-xs font-semibold text-white mb-0.5">
-            Görüşleriniz Başarıyla İşlendi
+            Görüşleriniz Başarıyla İşlendi & Benchmark Raporu
           </h4>
           <p className="text-[11px] text-indigo-200/80 leading-relaxed">
-            Ses ve metin yanıtlarınız yapay zeka analiz motorumuz tarafından anonim içgörülere dönüştürülmek üzere veri havuzuna dahil edildi.
+            Ses ve metin yanıtlarınız yapay zeka analiz motorumuz tarafından anonim içgörülere dönüştürüldü.{" "}
+            <strong>2026 Türkiye Gıda İmalatında Plansız Duruşlar & 3B Parça Benchmark Raporu</strong> hazırlandığında{" "}
+            <span className="text-indigo-300 font-mono">{participant.email}</span> adresinize otomatik iletilecektir.
           </p>
         </div>
       </div>
