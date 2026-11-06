@@ -138,50 +138,54 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     setCurrentQuestionIndex(project.questions.length - 1);
   };
 
-  // Ses Blob'unu Base64 formatına çevirme yardımcısı (Hafif ve bellekte)
-  const blobToBase64 = (blob: Blob): Promise<string> =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const res = reader.result as string;
-        const base64 = res.includes(",") ? res.split(",")[1] : res;
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-
-  // Adım 3: Anket Tamamlandı, Feedback Verildi -> Yalnızca Kesinleşen Yanıtlar Deşifre İçin Sunucuya Gönderilir (Depolama Şişmesi Önlenir)
+  // Adım 3: Anket Tamamlandı, Feedback Verildi -> Yalnızca Kesinleşen Ses Dosyaları Supabase Storage'a Yüklenir ve Deşifre Edilir
   const handleFeedbackSubmit = async (feedback: FeedbackData) => {
     if (!participant) return;
     setIsSubmitting(true);
 
     try {
-      // 1. Blob nesnelerini doğrudan base64'e dönüştür (Bulut depolamaya dosya yükleyip yer kaplamadan doğrudan Gemini'ye iletilir)
-      const serializableResponses: Record<string, QuestionResponse> = {};
-      for (const [qId, resp] of Object.entries(responses)) {
-        let audioBase64: string | undefined = undefined;
+      // 1. Sadece anket kesinleştiğinde, son geçerli ses dosyalarını paralel olarak Supabase Storage'a yükle
+      const finalResponses: Record<string, QuestionResponse> = {};
+
+      const uploadTasks = Object.entries(responses).map(async ([qId, resp]) => {
+        let audioUrl = resp.audioUrl;
+
         if (resp.mode === "audio" && resp.audioBlob) {
           try {
-            audioBase64 = await blobToBase64(resp.audioBlob);
-          } catch (err) {
-            console.error(`Soru ${qId} ses çevirme hatası:`, err);
+            const formData = new FormData();
+            formData.append("surveyId", project.id);
+            formData.append("sessionId", activeSessionId);
+            formData.append("questionId", resp.questionId);
+            formData.append("audio", resp.audioBlob, `${resp.questionId}.webm`);
+
+            const uploadRes = await fetch("/api/upload", {
+              method: "POST",
+              body: formData,
+            });
+            const uploadData = await uploadRes.json();
+            if (uploadData.audioUrl) {
+              audioUrl = uploadData.audioUrl;
+            }
+          } catch (uploadErr) {
+            console.error(`Soru ${qId} ses yükleme hatası:`, uploadErr);
           }
         }
 
-        serializableResponses[qId] = {
+        finalResponses[qId] = {
           questionId: resp.questionId,
           mode: resp.mode,
           durationSec: resp.durationSec,
-          audioBase64,
-          audioUrl: resp.audioUrl,
+          audioUrl,
           textResponse: resp.textResponse,
           sentiment: resp.sentiment,
           summary: resp.summary,
           isJunk: resp.isJunk,
         };
-      }
+      });
 
+      await Promise.all(uploadTasks);
+
+      // 2. Oturum verisini oluştur ve /api/analyze'e gönder (Gemini deşifresi + Supabase DB kaydı)
       const sessionData: InterviewSession = {
         id: activeSessionId,
         projectId: project.id,
@@ -189,7 +193,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
         completedAt: new Date().toISOString(),
         participant,
         tracking,
-        responses: serializableResponses,
+        responses: finalResponses,
         feedback,
         status: "completed",
       };
