@@ -960,36 +960,20 @@ function AdminDashboardContent() {
 
                                       <div className="flex items-center gap-2 shrink-0">
                                         {isAudio ? (
-                                          <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-medium flex items-center gap-1 font-mono">
-                                            <Mic className="w-3 h-3" />
-                                            <span>Sesli {resp.durationSec ? `(${Math.round(resp.durationSec)} sn)` : ""}</span>
+                                          <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-medium flex items-center gap-1.5 font-mono">
+                                            <Mic className="w-3.5 h-3.5" />
+                                            <span>Sesli Yanıt {resp.durationSec ? `(${Math.round(resp.durationSec)} sn)` : ""}</span>
                                           </span>
                                         ) : (
-                                          <span className="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-medium flex items-center gap-1 font-mono">
-                                            <FileText className="w-3 h-3" />
-                                            <span>Yazılı</span>
+                                          <span className="px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-medium flex items-center gap-1.5 font-mono">
+                                            <FileText className="w-3.5 h-3.5" />
+                                            <span>Yazılı Yanıt</span>
                                           </span>
                                         )}
                                       </div>
                                     </div>
 
-                                    {/* Orijinal Ses Oynatıcı */}
-                                    {resp.audioUrl && (
-                                      <div className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800/80 space-y-1">
-                                        <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
-                                          <Mic className="w-3 h-3 text-indigo-400" />
-                                          <span>Katılımcının Ses Kaydı:</span>
-                                        </span>
-                                        <audio
-                                          controls
-                                          src={resp.audioUrl}
-                                          className="w-full h-8 rounded-lg accent-indigo-500"
-                                          preload="none"
-                                        />
-                                      </div>
-                                    )}
-
-                                    {/* DEŞİFRE / CEVAP KISMI */}
+                                    {/* DEŞİFRE / CEVAP KISMI (Sesler sadece veritabanında arşivlenir, panelde doğrudan temiz deşifre sunulur) */}
                                     <div className="p-3.5 rounded-xl bg-slate-900/90 border border-indigo-500/30 space-y-2">
                                       <div className="flex items-center justify-between">
                                         <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider flex items-center gap-1.5">
