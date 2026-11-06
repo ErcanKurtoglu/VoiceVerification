@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { Mic, PenLine, HelpCircle, ArrowRight, Check } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Mic, PenLine, HelpCircle, ArrowRight, ArrowLeft, Check } from "lucide-react";
 import { Question, QuestionResponse } from "@/types/interview";
 import { useAudioRecorder } from "@/features/audio/hooks/useAudioRecorder";
 import { AudioRecorderControl } from "@/features/audio/components/AudioRecorderControl";
@@ -14,6 +14,7 @@ interface QuestionCardProps {
   projectContext: string;
   initialResponse?: QuestionResponse;
   onResponseSubmit: (response: QuestionResponse) => void;
+  onPrevious?: () => void;
 }
 
 export const QuestionCard: React.FC<QuestionCardProps> = ({
@@ -23,6 +24,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   projectContext,
   initialResponse,
   onResponseSubmit,
+  onPrevious,
 }) => {
   const [mode, setMode] = useState<"audio" | "text">(
     initialResponse?.mode || "audio"
@@ -32,9 +34,22 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   );
   const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
+  // Geri dönüldüğünde önceki ses kaydını dinletebilmek için URL
+  const [initialAudioUrl, setInitialAudioUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialResponse?.audioBlob) {
+      const url = URL.createObjectURL(initialResponse.audioBlob);
+      setInitialAudioUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+  }, [initialResponse?.audioBlob]);
+
   const recorder = useAudioRecorder(question.maxDurationSec);
 
-  const hasAudioResponse = Boolean(recorder.audioBlob || initialResponse?.audioBlob);
+  const hasAudioResponse = Boolean(
+    recorder.audioBlob || (initialResponse?.audioBlob && initialAudioUrl)
+  );
   const hasTextResponse = textInput.trim().length >= 10;
   const canProceed = mode === "audio" ? hasAudioResponse : hasTextResponse;
 
@@ -46,7 +61,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         questionId: question.id,
         mode: "audio",
         audioBlob: recorder.audioBlob || initialResponse?.audioBlob,
-        durationSec: recorder.duration || initialResponse?.durationSec,
+        durationSec:
+          recorder.duration || initialResponse?.durationSec || 0,
       });
     } else {
       onResponseSubmit({
@@ -58,7 +74,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   };
 
   return (
-    <div className="w-full max-w-2xl mx-auto p-6 md:p-8 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-2xl backdrop-blur-xl">
+    <div className="w-full max-w-2xl mx-auto p-6 md:p-8 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-2xl backdrop-blur-xl animate-fadeIn">
       {/* İlerleme ve Yardım Barı */}
       <div className="flex items-center justify-between gap-2 mb-6">
         <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wider">
@@ -119,6 +135,9 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           <AudioRecorderControl
             recorder={recorder}
             maxDurationSec={question.maxDurationSec}
+            initialAudioUrl={initialAudioUrl}
+            initialDuration={initialResponse?.durationSec}
+            onResetInitial={() => setInitialAudioUrl(null)}
           />
         ) : (
           <div className="w-full">
@@ -137,27 +156,43 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         )}
       </div>
 
-      {/* İlerle Butonu */}
-      <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
-        <span className="text-xs text-slate-400">
-          {canProceed ? (
-            <span className="text-emerald-400 flex items-center gap-1 font-medium">
+      {/* Alt Navigasyon Barı: Önceki Soru & Sonraki Soru */}
+      <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
+        {/* Önceki Soru Butonu */}
+        {onPrevious ? (
+          <button
+            type="button"
+            onClick={onPrevious}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-xs font-medium transition-all active:scale-95"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Önceki Soru</span>
+          </button>
+        ) : (
+          <div /> // Boşluğu korumak için
+        )}
+
+        <div className="flex items-center gap-3">
+          {canProceed && (
+            <span className="hidden sm:inline-flex text-emerald-400 items-center gap-1 text-xs font-medium">
               <Check className="w-3.5 h-3.5" /> Yanıtınız hazır
             </span>
-          ) : (
-            <span>İlerlemek için lütfen ses kaydı alın veya metin yazın.</span>
           )}
-        </span>
 
-        <button
-          type="button"
-          onClick={handleNext}
-          disabled={!canProceed}
-          className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs font-medium shadow-md transition-all active:scale-95"
-        >
-          <span>{questionNumber === totalQuestions ? "Son Adıma Geç" : "Sonraki Soru"}</span>
-          <ArrowRight className="w-3.5 h-3.5" />
-        </button>
+          <button
+            type="button"
+            onClick={handleNext}
+            disabled={!canProceed}
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs font-medium shadow-md transition-all active:scale-95"
+          >
+            <span>
+              {questionNumber === totalQuestions
+                ? "Son Adıma Geç"
+                : "Sonraki Soru"}
+            </span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
 
       {/* Mini AI Soru Asistanı Drawer */}

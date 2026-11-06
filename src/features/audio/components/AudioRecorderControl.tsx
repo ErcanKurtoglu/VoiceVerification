@@ -9,12 +9,18 @@ import { UseAudioRecorderReturn } from "../hooks/useAudioRecorder";
 interface AudioRecorderControlProps {
   recorder: UseAudioRecorderReturn;
   maxDurationSec?: number;
+  initialAudioUrl?: string | null;
+  initialDuration?: number;
+  onResetInitial?: () => void;
   onAudioConfirmed?: (blob: Blob, durationSec: number) => void;
 }
 
 export const AudioRecorderControl: React.FC<AudioRecorderControlProps> = ({
   recorder,
   maxDurationSec = 180,
+  initialAudioUrl,
+  initialDuration,
+  onResetInitial,
   onAudioConfirmed,
 }) => {
   const {
@@ -31,6 +37,10 @@ export const AudioRecorderControl: React.FC<AudioRecorderControlProps> = ({
 
   const audioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+
+  // Aktif ses URL'si: recorder'ın kendi sesi veya önceki kayıttan gelen ses
+  const activeAudioUrl = audioUrl || initialAudioUrl;
+  const activeDuration = duration || initialDuration || 0;
 
   const handleTogglePlay = () => {
     if (!audioPlayerRef.current) return;
@@ -54,6 +64,12 @@ export const AudioRecorderControl: React.FC<AudioRecorderControlProps> = ({
     }
   };
 
+  const handleFullReset = () => {
+    resetRecording();
+    onResetInitial?.();
+    setIsPlaying(false);
+  };
+
   return (
     <div className="w-full flex flex-col items-center gap-4">
       {/* 1. Hata & Çöp Uyarısı Mesajı */}
@@ -65,7 +81,7 @@ export const AudioRecorderControl: React.FC<AudioRecorderControlProps> = ({
       )}
 
       {/* 2. Kayıt Öncesi Durum (Başlangıç) */}
-      {!isRecording && !audioUrl && (
+      {!isRecording && !activeAudioUrl && (
         <div className="flex flex-col items-center gap-3">
           <button
             type="button"
@@ -92,7 +108,9 @@ export const AudioRecorderControl: React.FC<AudioRecorderControlProps> = ({
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-mono font-medium">
               <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              <span>{formatTime(duration)} / {formatTime(maxDurationSec)}</span>
+              <span>
+                {formatTime(duration)} / {formatTime(maxDurationSec)}
+              </span>
             </div>
 
             <button
@@ -109,11 +127,11 @@ export const AudioRecorderControl: React.FC<AudioRecorderControlProps> = ({
       )}
 
       {/* 4. Kayıt Tamamlandı (Önizleme & Onay & Silme) */}
-      {!isRecording && audioUrl && (
+      {!isRecording && activeAudioUrl && (
         <div className="w-full flex flex-col items-center gap-3 p-4 rounded-2xl bg-slate-900/60 border border-slate-800">
           <audio
             ref={audioPlayerRef}
-            src={audioUrl}
+            src={activeAudioUrl}
             onEnded={handleAudioEnded}
             className="hidden"
           />
@@ -130,14 +148,16 @@ export const AudioRecorderControl: React.FC<AudioRecorderControlProps> = ({
               </button>
               <div className="flex flex-col">
                 <span className="text-xs font-medium text-slate-200">Kaydedilen Yanıtınız</span>
-                <span className="text-[11px] text-slate-400 font-mono">{formatTime(duration)}</span>
+                <span className="text-[11px] text-slate-400 font-mono">
+                  {formatTime(activeDuration)}
+                </span>
               </div>
             </div>
 
             {/* Sil & Baştan Kaydet */}
             <button
               type="button"
-              onClick={resetRecording}
+              onClick={handleFullReset}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-red-500/10 text-xs transition-colors"
               title="Kaydı sil ve tekrar dene"
             >

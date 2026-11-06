@@ -1,16 +1,18 @@
 "use client";
 
 import React, { useState } from "react";
-import { Star, CheckCircle, Send, MessageSquare } from "lucide-react";
+import { Star, CheckCircle, Send, MessageSquare, ArrowLeft } from "lucide-react";
 import { FeedbackData } from "@/types/interview";
 
 interface FeedbackFormProps {
   onSubmit: (feedback: FeedbackData) => void;
+  onBack?: () => void;
   isSubmitting?: boolean;
 }
 
 export const FeedbackForm: React.FC<FeedbackFormProps> = ({
   onSubmit,
+  onBack,
   isSubmitting = false,
 }) => {
   const [rating, setRating] = useState<number>(5);
@@ -44,11 +46,22 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
 
   return (
     <div className="w-full max-w-xl mx-auto p-6 md:p-8 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-2xl backdrop-blur-xl animate-fadeIn">
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center justify-between gap-2 mb-4">
         <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium flex items-center gap-1.5">
           <CheckCircle className="w-3.5 h-3.5" />
           <span>Sorular Tamamlandı!</span>
         </span>
+
+        {onBack && (
+          <button
+            type="button"
+            onClick={onBack}
+            className="inline-flex items-center gap-1 text-slate-400 hover:text-white text-xs font-medium transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Sorulara Geri Dön</span>
+          </button>
+        )}
       </div>
 
       <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight mb-2">

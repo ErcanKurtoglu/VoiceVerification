@@ -106,7 +106,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     saveDraft(data, responses, trackingData);
   };
 
-  // Adım 2: Soru Cevaplandı
+  // Adım 2: Soru Cevaplandı ve İlerlendi
   const handleQuestionSubmit = (response: QuestionResponse) => {
     const updatedResponses = {
       ...responses,
@@ -120,6 +120,19 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     } else {
       setStep("feedback");
     }
+  };
+
+  // Önceki Soruya Geri Dönüş
+  const handlePreviousQuestion = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex((prev) => prev - 1);
+    }
+  };
+
+  // Feedback ekranından son soruya geri dönüş
+  const handleBackToLastQuestion = () => {
+    setStep("questions");
+    setCurrentQuestionIndex(project.questions.length - 1);
   };
 
   // Adım 3: Feedback Verildi ve Sunucuya Gönderim Yapılıyor
@@ -196,18 +209,23 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
 
       {step === "questions" && project.questions[currentQuestionIndex] && (
         <QuestionCard
-          key={project.questions[currentQuestionIndex].id} // Her yeni soruda mikrofon ve ses state'ini sıfırdan oluştur
+          key={project.questions[currentQuestionIndex].id}
           question={project.questions[currentQuestionIndex]}
           questionNumber={currentQuestionIndex + 1}
           totalQuestions={project.questions.length}
           projectContext={project.aiContext}
           initialResponse={responses[project.questions[currentQuestionIndex].id]}
           onResponseSubmit={handleQuestionSubmit}
+          onPrevious={currentQuestionIndex > 0 ? handlePreviousQuestion : undefined}
         />
       )}
 
       {step === "feedback" && (
-        <FeedbackForm onSubmit={handleFeedbackSubmit} isSubmitting={isSubmitting} />
+        <FeedbackForm
+          onSubmit={handleFeedbackSubmit}
+          onBack={handleBackToLastQuestion}
+          isSubmitting={isSubmitting}
+        />
       )}
 
       {step === "completed" && participant && (
