@@ -1,4 +1,4 @@
-import { SurveyConfig } from "@/types/interview";
+import type { SurveyConfig } from "../types/interview.ts";
 
 export const PRINT_IT_RIGHT_SURVEY: SurveyConfig = {
   id: "print-it-right",

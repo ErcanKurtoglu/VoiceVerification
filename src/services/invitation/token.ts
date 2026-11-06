@@ -1,4 +1,4 @@
-import { ParticipantData, TrackingData } from "@/types/interview";
+import type { ParticipantData, TrackingData } from "../../types/interview.ts";
 
 export interface InvitePayload {
   surveyId: string;

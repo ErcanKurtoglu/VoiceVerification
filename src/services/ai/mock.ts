@@ -1,4 +1,4 @@
-import { AIService, ChatMessage, TranscribeResult } from "./interface";
+import type { AIService, ChatMessage, TranscribeResult } from "./interface.ts";
 
 export class MockAIService implements AIService {
   async chatClarification(params: {
