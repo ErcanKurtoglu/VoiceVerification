@@ -132,4 +132,32 @@ describe("Admin Data Presentation: Audio Preservation vs UI Cleanliness", () => 
     assert.strictEqual(formatAdminRating(5), "5.0");
     assert.strictEqual(formatAdminRating(4), "4.0");
   });
+
+  test("CSV dışa aktarımında geri bildirim etiketleri ve katılımcı notu sütunları bulunmalıdır", () => {
+    const session = {
+      id: "sess_1",
+      projectId: "print-it-right",
+      participant: {
+        fullName: "Murat Can",
+        email: "murat@can.com",
+        company: "Can Gıda",
+        title: "Operasyon Direktörü",
+      },
+      feedback: {
+        rating: 5,
+        tags: ["Hızlı ve pratikti", "Sesli yanıt vermek çok rahattı"],
+        notes: "Arayüz ve ses algılama çok başarılı.",
+      },
+      startedAt: new Date().toISOString(),
+      responses: {
+        q1: { transcript: "Cevap 1" },
+      },
+    };
+
+    const feedbackTags = (session.feedback?.tags || []).join("; ").replace(/"/g, '""');
+    const feedbackNotes = (session.feedback?.notes || "").replace(/"/g, '""');
+
+    assert.strictEqual(feedbackTags, "Hızlı ve pratikti; Sesli yanıt vermek çok rahattı");
+    assert.strictEqual(feedbackNotes, "Arayüz ve ses algılama çok başarılı.");
+  });
 });

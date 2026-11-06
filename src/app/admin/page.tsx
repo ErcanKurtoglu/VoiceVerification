@@ -382,7 +382,9 @@ function AdminDashboardContent() {
       "Şirket",
       "Unvan",
       "UID",
-      "Puan",
+      "Deneyim Puanı",
+      "Beğenilen Özellikler (Etiketler)",
+      "Geri Bildirim Notu / Önerisi",
       "Tarih",
       "Soru 1 Deşifre",
       "Soru 2 Deşifre",
@@ -394,6 +396,8 @@ function AdminDashboardContent() {
       const q1 = (responsesList[0]?.transcript || responsesList[0]?.textResponse || "").replace(/"/g, '""');
       const q2 = (responsesList[1]?.transcript || responsesList[1]?.textResponse || "").replace(/"/g, '""');
       const q3 = (responsesList[2]?.transcript || responsesList[2]?.textResponse || "").replace(/"/g, '""');
+      const feedbackTags = (s.feedback?.tags || []).join("; ").replace(/"/g, '""');
+      const feedbackNotes = (s.feedback?.notes || "").replace(/"/g, '""');
 
       return [
         `"${s.id}"`,
@@ -404,6 +408,8 @@ function AdminDashboardContent() {
         `"${s.participant.title}"`,
         `"${s.tracking?.uid || ""}"`,
         `"${s.feedback?.rating && s.feedback.rating > 0 ? `${s.feedback.rating}.0` : "Seçim Yapılmadı"}"`,
+        `"${feedbackTags || "Seçilmedi"}"`,
+        `"${feedbackNotes || "İletilmedi"}"`,
         `"${new Date(s.startedAt).toLocaleString("tr-TR")}"`,
         `"${q1}"`,
         `"${q2}"`,
@@ -920,6 +926,58 @@ function AdminDashboardContent() {
                               <div>
                                 <span className="text-slate-500 text-[10px] uppercase font-bold block mb-0.5">E-posta Adresi</span>
                                 <span className="font-medium text-slate-300">{s.participant.email}</span>
+                              </div>
+                            </div>
+
+                            {/* Katılımcı Deneyim & Geri Bildirim Özeti */}
+                            <div className="p-4 rounded-2xl bg-indigo-950/20 border border-indigo-500/20 space-y-3">
+                              <div className="flex items-center justify-between">
+                                <h6 className="text-xs font-semibold text-indigo-300 flex items-center gap-1.5 uppercase tracking-wider">
+                                  <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                                  <span>Katılımcı Deneyim Geri Bildirimi</span>
+                                </h6>
+                                <span className="text-xs font-mono">
+                                  {s.feedback?.rating && s.feedback.rating > 0 ? (
+                                    <span className="text-amber-400 font-bold">{s.feedback.rating}.0 / 5.0</span>
+                                  ) : (
+                                    <span className="text-slate-500 italic">Puan Seçilmedi</span>
+                                  )}
+                                </span>
+                              </div>
+
+                              {/* Beğenilen Özellikler (Etiketler) */}
+                              <div>
+                                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1.5">
+                                  En Çok Beğenilen Özellikler:
+                                </span>
+                                {s.feedback?.tags && s.feedback.tags.length > 0 ? (
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {s.feedback.tags.map((tag, tIdx) => (
+                                      <span
+                                        key={tIdx}
+                                        className="px-2.5 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/30 text-indigo-200 text-[11px] font-medium"
+                                      >
+                                        ✓ {tag}
+                                      </span>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <span className="text-slate-500 italic text-xs">Herhangi bir etiket seçilmedi.</span>
+                                )}
+                              </div>
+
+                              {/* Katılımcının Eklediği Not / Öneri */}
+                              <div>
+                                <span className="text-[10px] uppercase font-bold text-slate-400 block mb-1">
+                                  Katılımcının Notu / Önerisi:
+                                </span>
+                                {s.feedback?.notes && s.feedback.notes.trim().length > 0 ? (
+                                  <p className="text-xs text-slate-200 bg-slate-900/80 border border-slate-800 p-3 rounded-xl italic leading-relaxed">
+                                    &ldquo;{s.feedback.notes}&rdquo;
+                                  </p>
+                                ) : (
+                                  <span className="text-slate-500 italic text-xs">Özel bir geri bildirim notu iletilmedi.</span>
+                                )}
                               </div>
                             </div>
 
