@@ -240,7 +240,11 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
   return (
     <div className="w-full flex flex-col items-center justify-center min-h-[500px]">
       {step === "onboarding" && (
-        <OnboardingForm project={project} onSubmit={handleOnboardingSubmit} />
+        <OnboardingForm
+          project={project}
+          onSubmit={handleOnboardingSubmit}
+          initialParticipant={initialParticipant}
+        />
       )}
 
       {step === "questions" && project.questions[currentQuestionIndex] && (

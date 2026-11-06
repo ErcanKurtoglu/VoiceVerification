@@ -13,9 +13,10 @@ import {
   Mail,
   Briefcase,
   AlertCircle,
+  Loader2,
+  CheckCircle2,
 } from "lucide-react";
 import { getSurveyById } from "@/surveys";
-import { generateShortId } from "@/lib/utils";
 import { ConsentModal } from "./ConsentModal";
 
 interface AccessDeniedCardProps {
@@ -36,18 +37,21 @@ export const AccessDeniedCard: React.FC<AccessDeniedCardProps> = ({
   const [title, setTitle] = useState("");
   const [consentGiven, setConsentGiven] = useState(false);
 
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [infoMsg, setInfoMsg] = useState("");
   const [isConsentOpen, setIsConsentOpen] = useState(false);
   const [consentTab, setConsentTab] = useState<"kvkk" | "terms" | "biometric">("kvkk");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg("");
+    setInfoMsg("");
 
     const cleanCode = code.trim().toUpperCase();
 
     if (!cleanCode) {
-      setErrorMsg("Lütfen geçerli bir erişim veya davetiye kodu giriniz.");
+      setErrorMsg("Lütfen geçerli bir erişim veya davetiye kodu (PIN) giriniz.");
       return;
     }
 
@@ -61,28 +65,44 @@ export const AccessDeniedCard: React.FC<AccessDeniedCardProps> = ({
       return;
     }
 
-    // Basit kod kontrolü (PIR-2026 veya FOOD-SAFE)
-    const validCodes = ["PIR-2026", "FOOD-SAFE"];
-    if (!validCodes.includes(cleanCode)) {
-      setErrorMsg("Girdiğiniz erişim kodu geçersiz veya süresi dolmuş. Lütfen kontrol ediniz.");
-      return;
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch("/api/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          surveyId,
+          accessPin: cleanCode,
+          fullName: fullName.trim(),
+          email: email.trim(),
+          company: company.trim(),
+          title: title.trim(),
+          validDays: 7,
+          mode: "participant",
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Giriş işlemi gerçekleştirilemedi.");
+      }
+
+      if (data.isExisting) {
+        setInfoMsg("Mevcut oturum ve süreli bağlantınız geri yüklendi. Yönlendiriliyorsunuz...");
+      }
+
+      // Üretilen veya geri yüklenen tekil süreli token URL'ine yönlendirme
+      setTimeout(() => {
+        window.location.href = data.url;
+      }, 500);
+    } catch (err: unknown) {
+      const error = err as Error;
+      setErrorMsg(error.message || "Bir hata oluştu. Lütfen bilgilerinizi kontrol ediniz.");
+      setIsSubmitting(false);
     }
-
-    // Başarılı doğrulama: Bilgilerle birlikte anketi doğrudan başlat
-    const uid = generateShortId("usr");
-    const query = new URLSearchParams({
-      code: cleanCode,
-      uid,
-      name: fullName.trim(),
-      email: email.trim(),
-      company: company.trim(),
-      title: title.trim(),
-    });
-
-    window.location.href = `/s/${surveyId}?${query.toString()}`;
   };
-
-  const isExpired = reason === "expired";
 
   return (
     <div className="w-full max-w-xl mx-auto p-6 md:p-8 rounded-3xl bg-slate-900/95 border border-slate-800 shadow-2xl backdrop-blur-xl animate-fadeIn">
@@ -102,9 +122,17 @@ export const AccessDeniedCard: React.FC<AccessDeniedCardProps> = ({
 
         <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
           Bu araştırma sektör profesyonellerine özel olarak sınırlandırılmıştır. 
-          Kişisel bir davet linkiniz yoksa, lütfen size iletilen <strong>Erişim Kodu</strong> ve bilgilerinizi giriniz.
+          Kişisel bir davet linkiniz yoksa, lütfen size iletilen <strong>Erişim Kodu (PIN)</strong> ve bilgilerinizi giriniz.
         </p>
       </div>
+
+      {/* Bilgilendirme / Geri Yükleme Mesajı */}
+      {infoMsg && (
+        <div className="p-3 mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>{infoMsg}</span>
+        </div>
+      )}
 
       {/* Hata Mesajı */}
       {errorMsg && (
@@ -120,7 +148,7 @@ export const AccessDeniedCard: React.FC<AccessDeniedCardProps> = ({
         <div className="p-3 rounded-2xl bg-indigo-500/5 border border-indigo-500/20">
           <label className="block text-xs font-semibold text-indigo-300 mb-1.5 flex items-center gap-1.5">
             <Lock className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Erişim / Kampanya Kodu <span className="text-red-400">*</span></span>
+            <span>Erişim Kodu (PIN) <span className="text-red-400">*</span></span>
           </label>
           <input
             type="text"
@@ -130,7 +158,7 @@ export const AccessDeniedCard: React.FC<AccessDeniedCardProps> = ({
             className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-indigo-500/30 text-white font-mono uppercase tracking-wider text-xs focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600"
           />
           <span className="text-[10px] text-slate-500 mt-1 block">
-            Örnek Test Kodu: <strong className="text-indigo-400 font-mono">PIR-2026</strong>
+            Test Kodu: <strong className="text-indigo-400 font-mono">PIR-2026</strong>
           </span>
         </div>
 
@@ -233,10 +261,20 @@ export const AccessDeniedCard: React.FC<AccessDeniedCardProps> = ({
         <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
           <button
             type="submit"
-            className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all active:scale-95"
+            disabled={isSubmitting}
+            className="w-full sm:flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
           >
-            <span>Doğrula ve Görüşmeye Başla</span>
-            <ArrowRight className="w-4 h-4" />
+            {isSubmitting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Oturum Doğrulanıyor...</span>
+              </>
+            ) : (
+              <>
+                <span>Doğrula ve Görüşmeye Başla</span>
+                <ArrowRight className="w-4 h-4" />
+              </>
+            )}
           </button>
 
           <Link
