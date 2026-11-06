@@ -83,3 +83,12 @@ To prevent the database, analytics, and AI quota from being polluted with junk o
 ## 6. Testing Requirements
 - Any changes to validation, audio verification, or anti-garbage logic must be accompanied by unit tests in `tests/*.test.mjs`.
 - Run tests via `npm test` before concluding major changes.
+
+---
+
+## 7. Survey Access & Expiring Invitation Governance
+- **Access Policy Enforcement:**
+  - Bare requests to `/s/[surveyId]` without authorization must be blocked and redirected via `AccessDeniedCard`.
+  - Authorized access requires a signed expiring token (`?token=...`), an active campaign code (`?code=...`), or tracked CRM parameters (`?uid=...`).
+  - Read full specification in [SURVEY_ACCESS_AND_INVITATION_SPEC.md](file:///Users/ercan/Documents/ChatGPT/VoiceVerification/docs/SURVEY_ACCESS_AND_INVITATION_SPEC.md) and rule file `.agents/rules/survey-access-governance.md`.
+

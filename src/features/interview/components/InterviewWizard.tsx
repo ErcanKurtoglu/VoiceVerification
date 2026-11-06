@@ -17,19 +17,32 @@ import { generateUUID } from "@/lib/utils";
 
 interface InterviewWizardProps {
   project: SurveyConfig;
+  initialParticipant?: Partial<ParticipantData>;
+  initialTracking?: TrackingData;
 }
 
 type WizardStep = "onboarding" | "questions" | "feedback" | "completed";
 
-export const InterviewWizard: React.FC<InterviewWizardProps> = ({ project }) => {
+export const InterviewWizard: React.FC<InterviewWizardProps> = ({
+  project,
+  initialParticipant,
+  initialTracking,
+}) => {
   const [step, setStep] = useState<WizardStep>("onboarding");
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [participant, setParticipant] = useState<ParticipantData | null>(null);
-  const [tracking, setTracking] = useState<TrackingData | undefined>(undefined);
+  const [tracking, setTracking] = useState<TrackingData | undefined>(initialTracking);
   const [responses, setResponses] = useState<Record<string, QuestionResponse>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const storageKey = `voice_verification_session_${project.id}`;
+
+  // İlk yüklemede initialParticipant'ı kontrol et
+  useEffect(() => {
+    if (initialTracking) {
+      setTracking(initialTracking);
+    }
+  }, [initialTracking]);
 
   // Oturum Direnci: Sayfa yenilenirse taslağı geri yükleme
   useEffect(() => {
