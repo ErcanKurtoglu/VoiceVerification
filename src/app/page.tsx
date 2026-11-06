@@ -16,9 +16,12 @@ import {
 } from "lucide-react";
 import { getAllSurveys } from "@/surveys";
 import { generateShortId } from "@/lib/utils";
+import { ConsentModal } from "@/features/interview/components/ConsentModal";
 
 export default function LandingPage() {
   const [accessCode, setAccessCode] = useState("");
+  const [isConsentOpen, setIsConsentOpen] = useState(false);
+  const [consentTab, setConsentTab] = useState<"kvkk" | "terms" | "biometric">("kvkk");
   const surveys = getAllSurveys();
 
   const handleCodeSubmit = (e: React.FormEvent) => {
@@ -205,15 +208,57 @@ export default function LandingPage() {
       </section>
 
       {/* 5. Footer */}
-      <footer className="w-full max-w-6xl mx-auto px-6 py-6 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500 z-10">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-emerald-500" />
-          <span>KVKK & GDPR Uyumlu • Biyometrik Kimlik Kaydı Tutulmaz</span>
+      <footer className="w-full max-w-6xl mx-auto px-6 py-6 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500 z-10">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-1.5 text-emerald-400 font-medium">
+            <ShieldCheck className="w-4 h-4 shrink-0" />
+            <span>Biyometrik Veri Kaydı Tutulmaz</span>
+          </div>
+          <span className="text-slate-700 hidden sm:inline">•</span>
+          <button
+            type="button"
+            onClick={() => {
+              setConsentTab("kvkk");
+              setIsConsentOpen(true);
+            }}
+            className="text-slate-400 hover:text-indigo-400 transition-colors underline"
+          >
+            KVKK & GDPR
+          </button>
+          <span className="text-slate-700 hidden sm:inline">•</span>
+          <button
+            type="button"
+            onClick={() => {
+              setConsentTab("terms");
+              setIsConsentOpen(true);
+            }}
+            className="text-slate-400 hover:text-indigo-400 transition-colors underline"
+          >
+            Kullanım Şartları
+          </button>
+          <span className="text-slate-700 hidden sm:inline">•</span>
+          <button
+            type="button"
+            onClick={() => {
+              setConsentTab("biometric");
+              setIsConsentOpen(true);
+            }}
+            className="text-slate-400 hover:text-indigo-400 transition-colors underline"
+          >
+            Biyometrik Güvence
+          </button>
         </div>
         <div>
           <span>VoiceVerify AI • Asenkron Doğrulama Altyapısı</span>
         </div>
       </footer>
+
+      {/* Legal & Privacy Modal */}
+      <ConsentModal
+        isOpen={isConsentOpen}
+        onClose={() => setIsConsentOpen(false)}
+        defaultTab={consentTab}
+      />
     </main>
   );
 }

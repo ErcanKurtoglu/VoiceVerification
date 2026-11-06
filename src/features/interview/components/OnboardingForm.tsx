@@ -31,6 +31,7 @@ interface OnboardingFormProps {
 export const OnboardingForm: React.FC<OnboardingFormProps> = ({ project, onSubmit }) => {
   const searchParams = useSearchParams();
   const [isConsentOpen, setIsConsentOpen] = useState(false);
+  const [consentTab, setConsentTab] = useState<"kvkk" | "terms" | "biometric">("kvkk");
 
   const [tracking, setTracking] = useState<TrackingData>({});
   const [isPreFilled, setIsPreFilled] = useState(false);
@@ -317,14 +318,29 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({ project, onSubmi
               className="mt-1 w-4 h-4 rounded border-slate-700 bg-slate-800 text-indigo-600 focus:ring-indigo-500/30 cursor-pointer"
             />
             <span className="text-xs text-slate-300 leading-relaxed">
-              Ses kaydımın bu araştırma kapsamında yapay zeka modelleriyle deşifre edilmesini ve anonimleştirilerek sektörel doğrulamada işlenmesini kabul ediyorum.{" "}
+              Ses kaydımın bu araştırma kapsamında yapay zeka modelleriyle deşifre edilmesini, anonimleştirilerek işlenmesini ve{" "}
               <button
                 type="button"
-                onClick={() => setIsConsentOpen(true)}
+                onClick={() => {
+                  setConsentTab("terms");
+                  setIsConsentOpen(true);
+                }}
                 className="text-indigo-400 hover:text-indigo-300 underline font-medium"
               >
-                Aydınlatma Metnini İncele
-              </button>
+                Kullanım Şartları
+              </button>{" "}
+              ile{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setConsentTab("kvkk");
+                  setIsConsentOpen(true);
+                }}
+                className="text-indigo-400 hover:text-indigo-300 underline font-medium"
+              >
+                KVKK Aydınlatma Metnini
+              </button>{" "}
+              kabul ediyorum.
             </span>
           </label>
           {errors.consentGiven && (
@@ -350,8 +366,12 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({ project, onSubmi
         </button>
       </form>
 
-      {/* KVKK Modal */}
-      <ConsentModal isOpen={isConsentOpen} onClose={() => setIsConsentOpen(false)} />
+      {/* KVKK & Terms Modal */}
+      <ConsentModal
+        isOpen={isConsentOpen}
+        onClose={() => setIsConsentOpen(false)}
+        defaultTab={consentTab}
+      />
     </div>
   );
 };
