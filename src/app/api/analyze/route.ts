@@ -25,8 +25,8 @@ export async function POST(req: NextRequest) {
       const qTitle = q ? q.title : "Genel Soru";
 
       try {
-        // Eğer transkript henüz yoksa ve ses kaydı URL'si varsa dosyayı indirip deşifre et
-        if (!resp.transcript && resp.audioUrl) {
+        // Kesinleşen ses kaydını indir ve tek seferde transkribe et
+        if (resp.audioUrl) {
           try {
             const audioRes = await fetch(resp.audioUrl);
             if (audioRes.ok) {
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
           } catch (audioErr) {
             console.error(`Transkript indirme hatası (Soru: ${qId}):`, audioErr);
           }
-        } else if (!resp.transcript && resp.textResponse) {
+        } else if (resp.textResponse) {
           resp.transcript = resp.textResponse.trim();
           resp.isJunk = false;
         }

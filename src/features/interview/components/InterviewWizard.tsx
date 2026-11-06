@@ -141,8 +141,6 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
                 [response.questionId]: {
                   ...current,
                   audioUrl: data.audioUrl,
-                  transcript: data.transcript || current.transcript || "",
-                  isJunk: data.isJunk !== undefined ? data.isJunk : current.isJunk,
                 },
               };
               saveDraft(participant, next, tracking);
@@ -173,21 +171,45 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     setCurrentQuestionIndex(project.questions.length - 1);
   };
 
-  // Adım 3: Feedback Verildi ve Sunucuya Gönderim Yapılıyor
+  // Adım 3: Anket Tamamlandı, Feedback Verildi -> Kesinleşen Yanıtlar Toplu Olarak Transkribe Edilip Supabase'e Gönderilir
   const handleFeedbackSubmit = async (feedback: FeedbackData) => {
     if (!participant) return;
     setIsSubmitting(true);
 
-    // Blob nesneleri hariç tüm verileri (audioUrl ve transcript dahil) hazırla
+    // 1. Son kaydedilmiş yanıtlardan ses dosyası olup henüz yüklenmemiş olanları tamamla
+    const finalResponses = { ...responses };
+    for (const [qId, resp] of Object.entries(finalResponses)) {
+      if (resp.mode === "audio" && resp.audioBlob && !resp.audioUrl) {
+        try {
+          const formData = new FormData();
+          formData.append("surveyId", project.id);
+          formData.append("sessionId", activeSessionId);
+          formData.append("questionId", resp.questionId);
+          formData.append("audio", resp.audioBlob, `${resp.questionId}.webm`);
+
+          const uploadRes = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+          const uploadData = await uploadRes.json();
+          if (uploadData.audioUrl) {
+            resp.audioUrl = uploadData.audioUrl;
+          }
+        } catch (uploadErr) {
+          console.error(`Soru ${qId} ses yükleme tamamlama hatası:`, uploadErr);
+        }
+      }
+    }
+
+    // 2. Blob nesneleri hariç kesinleşmiş verileri hazırla
     const serializableResponses: Record<string, QuestionResponse> = {};
-    for (const [qId, resp] of Object.entries(responses)) {
+    for (const [qId, resp] of Object.entries(finalResponses)) {
       serializableResponses[qId] = {
         questionId: resp.questionId,
         mode: resp.mode,
         durationSec: resp.durationSec,
         audioUrl: resp.audioUrl,
         textResponse: resp.textResponse,
-        transcript: resp.transcript,
         sentiment: resp.sentiment,
         summary: resp.summary,
         isJunk: resp.isJunk,

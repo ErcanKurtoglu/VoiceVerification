@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAudioStorage } from "@/services/storage/audio-storage";
-import { getAIService } from "@/services/ai";
 
 export async function POST(req: NextRequest) {
   try {
@@ -35,29 +34,11 @@ export async function POST(req: NextRequest) {
       mimeType,
     });
 
-    // Ses yüklenir yüklenmez Gemini 2.5 Flash ile deşifreyi çıkar
-    let transcript = "";
-    let isJunk = false;
-    try {
-      const ai = getAIService();
-      const transcriptionResult = await ai.transcribeAudioOrText({
-        questionTitle: questionId,
-        audioBase64: buffer.toString("base64"),
-        mimeType,
-      });
-      transcript = transcriptionResult.transcript;
-      isJunk = transcriptionResult.isJunk;
-    } catch (aiErr) {
-      console.warn("[UploadAPI] Anlık transkripsiyon uyarısı:", (aiErr as Error).message);
-    }
-
     return NextResponse.json({
       success: true,
       audioUrl: uploadResult.publicUrl,
       storagePath: uploadResult.storagePath,
       provider: uploadResult.provider,
-      transcript,
-      isJunk,
     });
   } catch (error: unknown) {
     const err = error as Error;
