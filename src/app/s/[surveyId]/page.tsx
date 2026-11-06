@@ -1,4 +1,4 @@
-import { getSurveyById, getAllSurveys } from "@/surveys";
+import { getSurveyByIdAsync, getAllSurveys } from "@/surveys";
 import { InterviewWizard } from "@/features/interview/components/InterviewWizard";
 import { AccessDeniedCard } from "@/features/interview/components/AccessDeniedCard";
 import { evaluateSurveyAccess } from "@/services/invitation/token";
@@ -29,7 +29,7 @@ async function SurveyAccessGate({
   const { surveyId } = await params;
   const rawParams = await searchParams;
 
-  const survey = getSurveyById(surveyId);
+  const survey = await getSurveyByIdAsync(surveyId);
   const access = evaluateSurveyAccess(surveyId, rawParams);
 
   if (!access.isAllowed) {

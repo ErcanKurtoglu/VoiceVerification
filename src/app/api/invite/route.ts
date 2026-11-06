@@ -6,7 +6,7 @@ import { generateShortId } from "@/lib/utils";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const {
+    let {
       surveyId,
       fullName,
       email,
@@ -17,9 +17,9 @@ export async function POST(req: NextRequest) {
       mode = "participant", // "admin" | "participant"
     } = body;
 
-    if (!surveyId || !email || !fullName) {
+    if (!email || !fullName) {
       return NextResponse.json(
-        { error: "Anket, isim ve e-posta zorunludur." },
+        { error: "İsim ve e-posta zorunludur." },
         { status: 400 }
       );
     }
@@ -28,18 +28,47 @@ export async function POST(req: NextRequest) {
     const cleanName = fullName.trim();
     const cleanCompany = (company || "").trim();
     const cleanTitle = (title || "").trim();
+    const cleanPin = (accessPin || "").trim().toUpperCase();
 
-    // 1. Katılımcı PIN ile giriş yapıyorsa PIN doğrulaması
+    // 1. PIN ile Giriş: Eğer surveyId verilmediyse veya participant modundaysa, PIN üzerinden surveyId çözümleme
     if (mode === "participant") {
-      const cleanPin = (accessPin || "").trim().toUpperCase();
-      const validPins = Object.keys(SURVEY_ACCESS_CODES);
-
-      if (!cleanPin || !validPins.includes(cleanPin)) {
+      if (!cleanPin) {
         return NextResponse.json(
-          { error: "Geçersiz veya yetkisiz erişim kodu (PIN)." },
+          { error: "Lütfen anket erişim kodunuzu (PIN) giriniz." },
           { status: 400 }
         );
       }
+
+      // A) Kod registry kontrolü
+      if (SURVEY_ACCESS_CODES[cleanPin]) {
+        surveyId = SURVEY_ACCESS_CODES[cleanPin].surveyId;
+      } else if (isSupabaseConfigured() && supabaseAdmin) {
+        // B) Supabase surveys tablosu kontrolü (Dinamik admin tarafından eklenen anketler)
+        const { data: surveyRow, error: sErr } = await supabaseAdmin
+          .from("surveys")
+          .select("id, access_pin, is_active")
+          .eq("access_pin", cleanPin)
+          .eq("is_active", true)
+          .maybeSingle();
+
+        if (!sErr && surveyRow) {
+          surveyId = surveyRow.id;
+        }
+      }
+
+      if (!surveyId) {
+        return NextResponse.json(
+          { error: `"${cleanPin}" koduna ait aktif bir anket bulunamadı. Lütfen kontrol ediniz.` },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (!surveyId) {
+      return NextResponse.json(
+        { error: "Anket seçilmelidir." },
+        { status: 400 }
+      );
     }
 
     const now = new Date();
@@ -61,6 +90,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({
           success: true,
+          surveyId,
           token: existing.token,
           url: existingUrl,
           expiresAt: existing.expires_at,
@@ -80,7 +110,7 @@ export async function POST(req: NextRequest) {
         company: cleanCompany,
         title: cleanTitle,
       },
-      { uid, ref: mode === "admin" ? "admin_invite" : `pin_${accessPin}` },
+      { uid, ref: mode === "admin" ? "admin_invite" : `pin_${cleanPin}` },
       Number(validDays) || 7
     );
 
@@ -95,7 +125,7 @@ export async function POST(req: NextRequest) {
         full_name: cleanName,
         company: cleanCompany,
         title: cleanTitle,
-        access_pin: accessPin || null,
+        access_pin: cleanPin || null,
         expires_at: expiresAt,
       });
 
@@ -108,6 +138,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      surveyId,
       token,
       url: generatedUrl,
       expiresAt,

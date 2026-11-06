@@ -10,16 +10,95 @@ import {
   Bot,
   Zap,
   Lock,
-  MessageSquare,
-  FileText,
-  CheckCircle2,
   Volume2,
+  KeyRound,
+  ArrowRight,
+  AlertCircle,
+  CheckCircle2,
+  Loader2,
+  Building,
+  User,
+  Mail,
+  Briefcase,
 } from "lucide-react";
 import { ConsentModal } from "@/features/interview/components/ConsentModal";
 
 export default function LandingPage() {
+  const [pin, setPin] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [company, setCompany] = useState("");
+  const [title, setTitle] = useState("");
+  const [consentGiven, setConsentGiven] = useState(false);
+
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+  const [infoMsg, setInfoMsg] = useState("");
+
   const [isConsentOpen, setIsConsentOpen] = useState(false);
   const [consentTab, setConsentTab] = useState<"kvkk" | "terms" | "biometric">("kvkk");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setInfoMsg("");
+
+    const cleanPin = pin.trim().toUpperCase();
+
+    if (!cleanPin) {
+      setErrorMsg("Lütfen size iletilen anket erişim kodunu (PIN) giriniz.");
+      return;
+    }
+
+    if (!fullName.trim() || !email.trim() || !company.trim() || !title.trim()) {
+      setErrorMsg("Lütfen tüm zorunlu katılımcı alanlarını doldurunuz.");
+      return;
+    }
+
+    if (!consentGiven) {
+      setErrorMsg("Görüşmeye başlamak için aydınlatma ve kullanım şartlarını onaylamalısınız.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch("/api/invite", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          accessPin: cleanPin,
+          fullName: fullName.trim(),
+          email: email.trim(),
+          company: company.trim(),
+          title: title.trim(),
+          validDays: 7,
+          mode: "participant",
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Giriş işlemi gerçekleştirilemedi.");
+      }
+
+      if (data.isExisting) {
+        setInfoMsg("Mevcut oturum ve takip bağlantınız geri yüklendi. Yönlendiriliyorsunuz...");
+      } else {
+        setInfoMsg("Kodunuz doğrulandı. Görüşme başlatılıyor...");
+      }
+
+      // Üretilen veya geri yüklenen tekil süreli token URL'ine doğrudan yönlendirme
+      setTimeout(() => {
+        window.location.href = data.url;
+      }, 400);
+    } catch (err: unknown) {
+      const error = err as Error;
+      setErrorMsg(error.message || "Bir hata oluştu. Lütfen bilgilerinizi kontrol ediniz.");
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between relative overflow-hidden selection:bg-indigo-500 selection:text-white">
@@ -52,8 +131,8 @@ export default function LandingPage() {
         </div>
       </header>
 
-      {/* 2. Hero Bölümü - Saf Tanıtım & Değer Önermesi */}
-      <section className="w-full max-w-4xl mx-auto px-4 py-16 md:py-24 text-center z-10 flex flex-col items-center">
+      {/* 2. Hero Bölümü & PIN ile Giriş Kartı */}
+      <section className="w-full max-w-4xl mx-auto px-4 py-12 md:py-16 text-center z-10 flex flex-col items-center">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-medium mb-6">
           <Sparkles className="w-3.5 h-3.5" />
           <span>Sektörel Pazar Doğrulaması & Asenkron Niteliksel İçgörü</span>
@@ -68,19 +147,182 @@ export default function LandingPage() {
         </h1>
 
         <p className="text-sm md:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed mb-10">
-          Geleneksel anketler sığ kalır, 45 dakikalık toplantılar ise takvim engeline takılır. 
-          VoiceVerify AI ile karar vericiler kendilerine özel davet bağlantılarıyla 3 dakikada sesli veya yazılı yanıt verir; yapay zeka deşifre motorumuz hipotezleri doğrular.
+          Takvim uyuşmazlığı ve yanıtsız anketler geride kaldı. Profesyoneller kendi tempolarında, 3 dakikada sesli veya yazılı yanıt verir; yapay zeka deşifre motorumuz hipotezleri doğrular.
         </p>
 
-        {/* 3 Adımlı Akış Görselleştirmesi */}
-        <div className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-3 gap-4 text-left mb-12">
+        {/* PIN ve Katılımcı Bilgileriyle Görüşmeye Giriş Kartı */}
+        <div className="w-full max-w-xl p-6 md:p-8 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-2xl backdrop-blur-xl text-left mb-12">
+          <div className="flex items-center gap-2.5 pb-4 mb-4 border-b border-slate-800">
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+              <KeyRound className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-white">
+                Erişim Kodu (PIN) ile Görüşmeye Katılın
+              </h3>
+              <p className="text-[11px] text-slate-400">
+                Size iletilen PIN kodunu ve bilgilerinizi girerek doğrudan ilgili araştırmaya başlayabilirsiniz.
+              </p>
+            </div>
+          </div>
+
+          {infoMsg && (
+            <div className="p-3 mb-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <span>{infoMsg}</span>
+            </div>
+          )}
+
+          {errorMsg && (
+            <div className="p-3 mb-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{errorMsg}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* 1. PIN Kodu */}
+            <div className="p-3 rounded-2xl bg-indigo-500/5 border border-indigo-500/20">
+              <label className="block text-xs font-semibold text-indigo-300 mb-1.5 flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Anket Erişim Kodu (PIN) <span className="text-red-400">*</span></span>
+              </label>
+              <input
+                type="text"
+                value={pin}
+                onChange={(e) => setPin(e.target.value)}
+                placeholder="Örn: PIR-2026"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-indigo-500/30 text-white font-mono uppercase tracking-wider text-xs focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600"
+              />
+              <span className="text-[10px] text-slate-500 mt-1 block">
+                Örnek Aktif PIN: <strong className="text-indigo-400 font-mono">PIR-2026</strong>
+              </span>
+            </div>
+
+            {/* 2. Ad Soyad & E-posta */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Ad Soyad <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  placeholder="Örn: Burak Kaya"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white text-xs focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  E-posta <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="burak@sirketiniz.com"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white text-xs focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-500"
+                />
+              </div>
+            </div>
+
+            {/* 3. Şirket & Unvan */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Şirket / Kurum <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
+                  placeholder="Örn: Fabrika veya Bağımsız"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white text-xs focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Unvan / Rol <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Örn: Üretim Mühendisi"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700 text-white text-xs focus:outline-none focus:border-indigo-500 transition-all placeholder:text-slate-500"
+                />
+              </div>
+            </div>
+
+            {/* 4. KVKK / Gizlilik Onayı */}
+            <div className="pt-1">
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={consentGiven}
+                  onChange={(e) => setConsentGiven(e.target.checked)}
+                  className="mt-1 w-4 h-4 rounded border-slate-700 bg-slate-800 text-indigo-600 focus:ring-indigo-500/30 cursor-pointer"
+                />
+                <span className="text-xs text-slate-300 leading-relaxed">
+                  Ses kaydımın deşifre edilmesini, anonim olarak işlenmesini ve{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConsentTab("terms");
+                      setIsConsentOpen(true);
+                    }}
+                    className="text-indigo-400 hover:text-indigo-300 underline font-medium"
+                  >
+                    Kullanım Şartları
+                  </button>{" "}
+                  ile{" "}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConsentTab("kvkk");
+                      setIsConsentOpen(true);
+                    }}
+                    className="text-indigo-400 hover:text-indigo-300 underline font-medium"
+                  >
+                    KVKK Aydınlatma Metnini
+                  </button>{" "}
+                  kabul ediyorum.
+                </span>
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+            >
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Oturum Doğrulanıyor & Başlatılıyor...</span>
+                </>
+              ) : (
+                <>
+                  <span>Doğrula ve Görüşmeye Başla</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+        </div>
+
+        {/* 3 Adımlı Akış Bilgisi */}
+        <div className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
           <div className="p-5 rounded-2xl bg-slate-900/80 border border-slate-800/80 backdrop-blur-sm space-y-2">
             <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-bold font-mono">
               01
             </div>
-            <h3 className="text-sm font-semibold text-white">Özel Davetiye</h3>
+            <h3 className="text-sm font-semibold text-white">PIN Kodu Girişi</h3>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Katılımcılar yalnızca kendilerine iletilen süreli özel link veya kampanya erişim kodu ile görüşmeye dahil olabilir.
+              Katılımcılar doğrudan ilgili araştırma için tanımlanmış PIN kodunu girerek süreli oturum oluşturur.
             </p>
           </div>
 
@@ -202,7 +444,7 @@ export default function LandingPage() {
           </button>
         </div>
         <div>
-          <span>VoiceVerification AI &copy; 2026 • Kurumsal Asenkron Doğrulama</span>
+          <span>VoiceVerify AI &copy; 2026 • Kurumsal Asenkron Doğrulama</span>
         </div>
       </footer>
 
