@@ -141,6 +141,8 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
                 [response.questionId]: {
                   ...current,
                   audioUrl: data.audioUrl,
+                  transcript: data.transcript || current.transcript || "",
+                  isJunk: data.isJunk !== undefined ? data.isJunk : current.isJunk,
                 },
               };
               saveDraft(participant, next, tracking);

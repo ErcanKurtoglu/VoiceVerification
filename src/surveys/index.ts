@@ -2,6 +2,8 @@ import { SurveyConfig } from "@/types/interview";
 import { PRINT_IT_RIGHT_SURVEY } from "./print-it-right";
 import { supabaseAdmin, isSupabaseConfigured } from "@/services/storage/supabase-client";
 
+export { PRINT_IT_RIGHT_SURVEY };
+
 export const SURVEY_REGISTRY: Record<string, SurveyConfig> = {
   "print-it-right": PRINT_IT_RIGHT_SURVEY,
   "food-safe-parts": PRINT_IT_RIGHT_SURVEY,

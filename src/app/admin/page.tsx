@@ -29,9 +29,11 @@ import {
   HelpCircle,
   Trash2,
   KeyRound,
+  Mic,
+  FileText,
 } from "lucide-react";
 import { InterviewSession, SurveyConfig, Question } from "@/types/interview";
-import { getAllSurveys } from "@/surveys";
+import { getAllSurveys, PRINT_IT_RIGHT_SURVEY } from "@/surveys";
 
 export default function AdminPage() {
   const [sessions, setSessions] = useState<InterviewSession[]>([]);
@@ -903,34 +905,72 @@ export default function AdminPage() {
                               </div>
                             </div>
 
-                            <h5 className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                              Soru Bazlı Ses Kayıtları & Gemini 2.5 Flash Deşifresi
-                            </h5>
+                            <div className="flex items-center justify-between pt-1">
+                              <h5 className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                                <span>Soru & Katılımcı Cevapları (Deşifre Sonuçları)</span>
+                              </h5>
+                              <span className="text-[10px] text-slate-500 font-mono">
+                                Toplam {Object.keys(s.responses).length} Soru
+                              </span>
+                            </div>
 
-                            <div className="space-y-3">
-                              {Object.entries(s.responses).map(([qId, resp]) => {
-                                const questionMeta = currentSurvey?.questions?.find((q) => q.id === qId);
+                            <div className="space-y-4">
+                              {Object.entries(s.responses).map(([qId, resp], idx) => {
+                                const questionMeta =
+                                  currentSurvey?.questions?.find((q) => q.id === qId) ||
+                                  PRINT_IT_RIGHT_SURVEY.questions.find((q) => q.id === qId);
+
+                                const questionTitle = questionMeta?.title || `Soru #${idx + 1}`;
+                                const questionDesc = questionMeta?.description;
+                                const isAudio = resp.mode === "audio" || Boolean(resp.audioUrl);
+                                const transcriptText = resp.transcript || resp.textResponse || "";
 
                                 return (
                                   <div
                                     key={qId}
-                                    className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2.5"
+                                    className="p-4 rounded-2xl bg-slate-950 border border-slate-800 shadow-sm space-y-3"
                                   >
-                                    <div className="flex items-center justify-between">
-                                      <span className="text-xs font-medium text-white flex items-center gap-1.5">
-                                        <span className="w-2 h-2 rounded-full bg-indigo-500" />
-                                        {questionMeta?.title || qId}
-                                      </span>
-                                      {resp.durationSec && (
-                                        <span className="text-[11px] text-slate-500 font-mono">
-                                          {Math.round(resp.durationSec)} sn
-                                        </span>
-                                      )}
+                                    {/* Soru Başlık Satırı */}
+                                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 pb-2.5 border-b border-slate-900">
+                                      <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                          <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 font-mono text-[10px] font-bold">
+                                            SORU #{idx + 1}
+                                          </span>
+                                          <h6 className="text-xs md:text-sm font-semibold text-white">
+                                            {questionTitle}
+                                          </h6>
+                                        </div>
+                                        {questionDesc && (
+                                          <p className="text-[11px] text-slate-400 leading-relaxed">
+                                            {questionDesc}
+                                          </p>
+                                        )}
+                                      </div>
+
+                                      <div className="flex items-center gap-2 shrink-0">
+                                        {isAudio ? (
+                                          <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-medium flex items-center gap-1 font-mono">
+                                            <Mic className="w-3 h-3" />
+                                            <span>Sesli {resp.durationSec ? `(${Math.round(resp.durationSec)} sn)` : ""}</span>
+                                          </span>
+                                        ) : (
+                                          <span className="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-medium flex items-center gap-1 font-mono">
+                                            <FileText className="w-3 h-3" />
+                                            <span>Yazılı</span>
+                                          </span>
+                                        )}
+                                      </div>
                                     </div>
 
-                                    {/* Ses Oynatıcı */}
+                                    {/* Orijinal Ses Oynatıcı */}
                                     {resp.audioUrl && (
-                                      <div className="pt-1">
+                                      <div className="p-2.5 rounded-xl bg-slate-900/40 border border-slate-800/80 space-y-1">
+                                        <span className="text-[10px] font-mono text-slate-400 flex items-center gap-1">
+                                          <Mic className="w-3 h-3 text-indigo-400" />
+                                          <span>Katılımcının Ses Kaydı:</span>
+                                        </span>
                                         <audio
                                           controls
                                           src={resp.audioUrl}
@@ -940,14 +980,30 @@ export default function AdminPage() {
                                       </div>
                                     )}
 
-                                    {/* Transkript Metni */}
-                                    <div className="text-xs text-slate-300 leading-relaxed bg-slate-900/70 p-3 rounded-lg border border-slate-800/80">
-                                      <span className="text-[10px] text-indigo-400 font-semibold block mb-1">
-                                        {resp.audioUrl ? "🎙️ SES DEŞİFRESİ (TRANSCRIPT):" : "✍️ YAZILI YANIT:"}
-                                      </span>
-                                      <p className="whitespace-pre-wrap">
-                                        {resp.transcript || resp.textResponse || "(Kayıt işleniyor...)"}
-                                      </p>
+                                    {/* DEŞİFRE / CEVAP KISMI */}
+                                    <div className="p-3.5 rounded-xl bg-slate-900/90 border border-indigo-500/30 space-y-2">
+                                      <div className="flex items-center justify-between">
+                                        <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider flex items-center gap-1.5">
+                                          <span>💬 Katılımcının Yanıtı {isAudio ? "(Deşifre Sonucu)" : "(Yazılı Cevap)"}:</span>
+                                        </span>
+                                        {isAudio && (
+                                          <span className="text-[9px] px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono">
+                                            Gemini 2.5 Flash Transkripti
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {transcriptText ? (
+                                        <p className="text-xs md:text-sm text-slate-100 font-medium leading-relaxed whitespace-pre-wrap pl-3 border-l-2 border-indigo-500">
+                                          &ldquo;{transcriptText}&rdquo;
+                                        </p>
+                                      ) : (
+                                        <p className="text-xs text-slate-500 italic pl-3 border-l-2 border-slate-700">
+                                          {resp.audioUrl
+                                            ? "Ses kaydı mevcut, deşifre işleniyor..."
+                                            : "Katılımcı boş yanıt iletti."}
+                                        </p>
+                                      )}
                                     </div>
                                   </div>
                                 );

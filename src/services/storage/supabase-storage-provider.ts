@@ -47,8 +47,12 @@ export class SupabaseStorageService implements StorageService {
   }
 
   async saveSession(session: InterviewSession): Promise<void> {
-    // 1. Her zaman yerel yedeğe de yaz
-    await this.fallbackService.saveSession(session);
+    // 1. Yerel yedeğe yazmayı dene (Vercel serverless salt okunur dosya sisteminde hata fırlatmamalı)
+    try {
+      await this.fallbackService.saveSession(session);
+    } catch (e) {
+      console.warn("[SupabaseStorage] Yerel dosya sistemine yazılamadı (sunucusuz ortam):", (e as Error).message);
+    }
 
     if (!isSupabaseConfigured() || !supabaseAdmin) {
       return;
