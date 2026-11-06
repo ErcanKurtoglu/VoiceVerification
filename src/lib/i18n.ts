@@ -83,6 +83,7 @@ export interface Translations {
   recordListening: string;
   recordRerecord: string;
   recordSuccess: string;
+  textSuccess: string;
   textPlaceholder: string;
   askAssistant: string;
   nextQuestion: string;
@@ -211,6 +212,7 @@ export const translations: Record<Language, Translations> = {
     recordListening: "Kaydı Dinle",
     recordRerecord: "Tekrar Kaydet",
     recordSuccess: "Ses kaydı hazır",
+    textSuccess: "Yazılı yanıtınız hazır",
     textPlaceholder: "Düşüncelerinizi en az 10 karakter olacak şekilde detaylıca yazınız...",
     askAssistant: "AI Asistana Sor",
     nextQuestion: "Sonraki Soruya Geç",
@@ -346,6 +348,7 @@ export const translations: Record<Language, Translations> = {
     recordListening: "Listen Playback",
     recordRerecord: "Re-record",
     recordSuccess: "Recording captured",
+    textSuccess: "Written response ready",
     textPlaceholder: "Type your detailed thoughts (minimum 10 characters)...",
     askAssistant: "Ask AI Assistant",
     nextQuestion: "Proceed to Next Question",

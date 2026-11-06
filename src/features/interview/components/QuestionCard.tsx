@@ -176,7 +176,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         <div className="flex items-center gap-3">
           {canProceed && (
             <span className="hidden sm:inline-flex text-emerald-400 items-center gap-1 text-xs font-medium">
-              <Check className="w-3.5 h-3.5" /> {t.recordSuccess}
+              <Check className="w-3.5 h-3.5" />
+              <span>{mode === "audio" ? t.recordSuccess : t.textSuccess}</span>
             </span>
           )}
 

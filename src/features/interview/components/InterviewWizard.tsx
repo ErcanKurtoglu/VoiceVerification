@@ -48,7 +48,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     return `voice_verification_done_${project.id}_${search}_${uid}`;
   };
 
-  // Bu bağlantı ile daha önce form doldurulduysa doğrudan 'already_completed' göster ve formu kapat
+  // Bu bağlantı ile daha önce form doldurulduysa 'already_completed' göster, değilse aktif taslağı yalnızca ilk yüklemede geri yükle
   useEffect(() => {
     try {
       const key = getCompletedUrlKey();
@@ -56,8 +56,26 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
         setStep("already_completed");
         return;
       }
+
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.projectId === project.id && parsed.status === "in_progress" && parsed.participant) {
+          setParticipant(parsed.participant);
+          if (parsed.tracking) setTracking(parsed.tracking);
+          if (parsed.responses) setResponses(parsed.responses);
+          if (parsed.step === "feedback") {
+            setStep("feedback");
+          } else {
+            setStep("questions");
+            if (typeof parsed.currentQuestionIndex === "number" && parsed.currentQuestionIndex >= 0) {
+              setCurrentQuestionIndex(parsed.currentQuestionIndex);
+            }
+          }
+        }
+      }
     } catch {
-      // ignore
+      // LocalStorage hatası olursa sessizce geç
     }
   }, [project.id]);
 
@@ -68,35 +86,15 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     }
   }, [initialTracking]);
 
-  // Oturum Direnci: Sayfa yenilenirse taslağı geri yükleme (Tamamlanmamışsa)
-  useEffect(() => {
-    if (step === "already_completed") return;
-
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.projectId === project.id && parsed.status === "in_progress") {
-          setParticipant(parsed.participant);
-          setTracking(parsed.tracking);
-          setResponses(parsed.responses || {});
-          if (parsed.participant) {
-            setStep("questions");
-          }
-        }
-      }
-    } catch {
-      // LocalStorage hatası olursa sessizce geç
-    }
-  }, [project.id, storageKey, step]);
-
   // Taslağı kaydetme
   const saveDraft = (
     updatedParticipant: ParticipantData | null,
     updatedResponses: Record<string, QuestionResponse>,
-    updatedTracking?: TrackingData
+    updatedTracking?: TrackingData,
+    targetStep?: WizardStep,
+    targetQuestionIndex?: number
   ) => {
-    if (!updatedParticipant || step === "already_completed") return;
+    if (!updatedParticipant) return;
     try {
       const cleanResponses: Record<string, Partial<QuestionResponse>> = {};
       for (const [k, v] of Object.entries(updatedResponses)) {
@@ -114,6 +112,9 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
         participant: updatedParticipant,
         tracking: updatedTracking || tracking,
         responses: cleanResponses,
+        step: targetStep || step,
+        currentQuestionIndex:
+          targetQuestionIndex !== undefined ? targetQuestionIndex : currentQuestionIndex,
         status: "in_progress",
         updatedAt: new Date().toISOString(),
       };
@@ -129,7 +130,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     setTracking(trackingData);
     setStep("questions");
     setCurrentQuestionIndex(0);
-    saveDraft(data, responses, trackingData);
+    saveDraft(data, responses, trackingData, "questions", 0);
   };
 
   // Adım 2: Soru Cevaplandı ve İlerlendi
@@ -139,26 +140,32 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
       [response.questionId]: response,
     };
     setResponses(updatedResponses);
-    saveDraft(participant, updatedResponses, tracking);
 
     if (currentQuestionIndex < project.questions.length - 1) {
-      setCurrentQuestionIndex((prev) => prev + 1);
+      const nextIdx = currentQuestionIndex + 1;
+      setCurrentQuestionIndex(nextIdx);
+      saveDraft(participant, updatedResponses, tracking, "questions", nextIdx);
     } else {
       setStep("feedback");
+      saveDraft(participant, updatedResponses, tracking, "feedback", currentQuestionIndex);
     }
   };
 
   // Önceki Soruya Geri Dönüş
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex((prev) => prev - 1);
+      const prevIdx = currentQuestionIndex - 1;
+      setCurrentQuestionIndex(prevIdx);
+      saveDraft(participant, responses, tracking, "questions", prevIdx);
     }
   };
 
   // Feedback ekranından son soruya geri dönüş
   const handleBackToLastQuestion = () => {
+    const lastIdx = project.questions.length - 1;
+    setCurrentQuestionIndex(lastIdx);
     setStep("questions");
-    setCurrentQuestionIndex(project.questions.length - 1);
+    saveDraft(participant, responses, tracking, "questions", lastIdx);
   };
 
   // Adım 3: Anket Tamamlandı, Feedback Verildi
