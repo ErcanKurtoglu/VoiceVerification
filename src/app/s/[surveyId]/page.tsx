@@ -6,6 +6,8 @@ import Link from "next/link";
 import { ShieldCheck, Sparkles, BarChart3, Loader2 } from "lucide-react";
 import { Suspense } from "react";
 
+import { LanguageToggle } from "@/context/LanguageContext";
+
 export function generateStaticParams() {
   const surveys = getAllSurveys();
   return surveys.map((s) => ({
@@ -70,6 +72,7 @@ export default function SurveyInstancePage({
             VoiceVerify <span className="text-indigo-400 font-mono text-xs">AI</span>
           </span>
         </Link>
+        <LanguageToggle />
       </header>
 
       {/* Ana İçerik: Suspense ile Stream Edilen Erişim Kapısı */}

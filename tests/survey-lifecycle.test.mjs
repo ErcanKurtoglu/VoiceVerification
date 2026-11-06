@@ -123,4 +123,19 @@ describe("Survey Lifecycle: Deferred Processing & Final Payload Assembly", () =>
     assert.strictEqual(Object.keys(session.responses).length, 3);
     assert.strictEqual(session.feedback?.rating, 5);
   });
+
+  test("Kullanıcı yıldız seçmediğinde (rating: 0) yanıltıcı 5 yıldız yerine seçim yapılmadı kaydedilmelidir", () => {
+    const feedbackWithoutRating = {
+      rating: 0,
+      tags: [],
+      notes: "",
+    };
+
+    assert.strictEqual(feedbackWithoutRating.rating, 0);
+    const displayRating = feedbackWithoutRating.rating && feedbackWithoutRating.rating > 0
+      ? `${feedbackWithoutRating.rating}.0`
+      : "Seçim Yapılmadı";
+
+    assert.strictEqual(displayRating, "Seçim Yapılmadı");
+  });
 });

@@ -26,6 +26,7 @@ import {
 import { generateShortId } from "@/lib/utils";
 import { isSpamSubmission } from "@/features/anti-garbage/honeypot";
 import { ConsentModal } from "./ConsentModal";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface OnboardingFormProps {
   project: SurveyConfig;
@@ -38,6 +39,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
   onSubmit,
   initialParticipant,
 }) => {
+  const { t, lang } = useLanguage();
   const searchParams = useSearchParams();
   const [isConsentOpen, setIsConsentOpen] = useState(false);
   const [consentTab, setConsentTab] = useState<"kvkk" | "terms" | "biometric">("kvkk");
@@ -299,9 +301,9 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
 
             <button
               type="submit"
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all active:scale-95"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
             >
-              <span>Görüşmeyi Başlat</span>
+              <span>{t.onboardingStartBtn}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>
@@ -311,12 +313,12 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                  Ad Soyad <span className="text-red-400">*</span>
+                  {t.fullNameLabel} <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="text"
                   name="fullName"
-                  placeholder="Örn: Ayşe Yılmaz"
+                  placeholder={t.fullNamePlaceholder}
                   value={formData.fullName}
                   onChange={handleChange}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700/80 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
@@ -328,12 +330,12 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
 
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                  E-posta Adresi <span className="text-red-400">*</span>
+                  {t.emailLabel} <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="email"
                   name="email"
-                  placeholder="Örn: ayse@sirketiniz.com"
+                  placeholder={t.emailPlaceholder}
                   value={formData.email}
                   onChange={handleChange}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700/80 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
@@ -347,12 +349,12 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                  Şirket / Kurum <span className="text-red-400">*</span>
+                  {t.companyLabel} <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="text"
                   name="company"
-                  placeholder="Örn: Sütaş, Danone veya Bağımsız"
+                  placeholder={t.companyPlaceholder}
                   value={formData.company}
                   onChange={handleChange}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700/80 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
@@ -364,12 +366,12 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
 
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                  Unvan / Rol <span className="text-red-400">*</span>
+                  {t.titleLabel} <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="text"
                   name="title"
-                  placeholder="Örn: Bakım Mühendisi, Fabrika Müdürü vb."
+                  placeholder={t.titlePlaceholder}
                   value={formData.title}
                   onChange={handleChange}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700/80 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
@@ -423,9 +425,9 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
 
             <button
               type="submit"
-              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all active:scale-95"
+              className="w-full py-3.5 rounded-2xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-semibold shadow-lg shadow-indigo-600/30 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer"
             >
-              <span>Görüşmeyi Başlat</span>
+              <span>{t.onboardingStartBtn}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

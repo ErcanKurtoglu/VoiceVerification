@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Star, CheckCircle, Send, MessageSquare, ArrowLeft } from "lucide-react";
 import { FeedbackData } from "@/types/interview";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface FeedbackFormProps {
   onSubmit: (feedback: FeedbackData) => void;
@@ -15,19 +16,12 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
   onBack,
   isSubmitting = false,
 }) => {
-  const [rating, setRating] = useState<number>(5);
+  const { t } = useLanguage();
+  // Kullanıcı henüz bir seçim yapmadıysa 0 (seçim yapılmadı) olarak başlatıyoruz
+  const [rating, setRating] = useState<number>(0);
   const [hoverRating, setHoverRating] = useState<number>(0);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
-
-  const availableTags = [
-    "Hızlı ve pratikti",
-    "Sesli yanıt vermek çok rahattı",
-    "Geleneksel anketlerden çok daha iyi",
-    "AI Asistan netleştirmesi faydalıydı",
-    "Mikrofon deneyimi sorunsuzdu",
-    "Takvim/Zoom derdi olmaması harika",
-  ];
 
   const toggleTag = (tag: string) => {
     setSelectedTags((prev) =>
@@ -35,21 +29,28 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
     );
   };
 
+  const handleStarClick = (star: number) => {
+    // Tıklanan yıldıza tekrar basılırsa seçimi kaldır (0'a döndür)
+    setRating((prev) => (prev === star ? 0 : star));
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSubmit({
-      rating,
+      rating: rating > 0 ? rating : 0,
       tags: selectedTags,
       notes: notes.trim(),
     });
   };
+
+  const effectiveRating = hoverRating || rating;
 
   return (
     <div className="w-full max-w-xl mx-auto p-6 md:p-8 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-2xl backdrop-blur-xl animate-fadeIn">
       <div className="flex items-center justify-between gap-2 mb-4">
         <span className="px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium flex items-center gap-1.5">
           <CheckCircle className="w-3.5 h-3.5" />
-          <span>Sorular Tamamlandı!</span>
+          <span>{t.feedbackBadge}</span>
         </span>
 
         {onBack && (
@@ -59,35 +60,38 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
             className="inline-flex items-center gap-1 text-slate-400 hover:text-white text-xs font-medium transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Sorulara Geri Dön</span>
+            <span>{t.feedbackBackToQuestions}</span>
           </button>
         )}
       </div>
 
       <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight mb-2">
-        Bu Deneyimi Nasıl Buldunuz?
+        {t.feedbackTitle}
       </h2>
       <p className="text-xs md:text-sm text-slate-300 mb-6 leading-relaxed">
-        Geliştirdiğimiz bu sesli doğrulama yöntemini geleneksel formlara ve toplantılara kıyasla değerlendirmeniz, sistemi geliştirmemiz için çok değerlidir.
+        {t.feedbackSubtitle}
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Yıldız Puanlama */}
         <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-slate-800/40 border border-slate-800">
-          <span className="text-xs text-slate-400 mb-2 font-medium">Genel Deneyim Puanınız</span>
-          <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-400 mb-2 font-medium">
+            {t.feedbackRatingLabel}
+          </span>
+          <div className="flex items-center gap-2 mb-2">
             {[1, 2, 3, 4, 5].map((star) => (
               <button
                 key={star}
                 type="button"
                 onMouseEnter={() => setHoverRating(star)}
                 onMouseLeave={() => setHoverRating(0)}
-                onClick={() => setRating(star)}
+                onClick={() => handleStarClick(star)}
                 className="p-1 text-slate-600 hover:scale-110 transition-transform focus:outline-none"
+                aria-label={`${star} Star`}
               >
                 <Star
                   className={`w-7 h-7 transition-colors ${
-                    (hoverRating || rating) >= star
+                    effectiveRating >= star
                       ? "text-amber-400 fill-amber-400"
                       : "text-slate-700"
                   }`}
@@ -95,15 +99,24 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
               </button>
             ))}
           </div>
+
+          <span className="text-[11px] font-mono text-slate-400">
+            {rating > 0 ? (
+              <span className="text-amber-400 font-semibold">{rating}.0 / 5.0</span>
+            ) : (
+              <span className="text-slate-500 italic">{t.feedbackNoRatingYet}</span>
+            )}
+          </span>
         </div>
 
         {/* Hızlı Seçim Tag'leri */}
         <div>
           <label className="block text-xs font-medium text-slate-300 mb-2.5">
-            En çok neleri beğendiniz? <span className="text-slate-500">(Birden fazla seçebilirsiniz)</span>
+            {t.feedbackTagsTitle}{" "}
+            <span className="text-slate-500">{t.feedbackTagsSubtitle}</span>
           </label>
           <div className="flex flex-wrap gap-2">
-            {availableTags.map((tag) => {
+            {t.feedbackTags.map((tag) => {
               const isSelected = selectedTags.includes(tag);
               return (
                 <button
@@ -127,13 +140,13 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
         <div>
           <label className="block text-xs font-medium text-slate-300 mb-1.5 flex items-center gap-1.5">
             <MessageSquare className="w-3.5 h-3.5 text-slate-400" />
-            <span>Eklemek istediğiniz bir geri bildirim var mı?</span>
+            <span>{t.feedbackNotesLabel}</span>
           </label>
           <textarea
             rows={3}
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Arayüz, ses kalitesi veya soru akışıyla ilgili önerileriniz..."
+            placeholder={t.feedbackNotesPlaceholder}
             className="w-full p-3 rounded-xl bg-slate-800/70 border border-slate-700 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-all"
           />
         </div>
@@ -145,10 +158,10 @@ export const FeedbackForm: React.FC<FeedbackFormProps> = ({
           className="w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 hover:from-emerald-500 hover:to-indigo-500 disabled:opacity-40 text-white font-medium text-sm shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all active:scale-[0.99]"
         >
           {isSubmitting ? (
-            <span>Gönderiliyor ve Analiz Ediliyor...</span>
+            <span>{t.feedbackSubmittingBtn}</span>
           ) : (
             <>
-              <span>Görüşmeyi Tamamla</span>
+              <span>{t.feedbackSubmitBtn}</span>
               <Send className="w-4 h-4" />
             </>
           )}

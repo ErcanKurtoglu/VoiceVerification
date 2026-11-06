@@ -119,7 +119,7 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
                   2. Ses Kaydının Deşifresi ve NLP Analizi
                 </h4>
                 <p className="text-slate-400 pl-6">
-                  Kaydettiğiniz ses, Google Gemini ve açık kaynaklı konuşma tanıma (STT) modelleri üzerinden yalnızca yazılı metne dönüştürülmekte ve içerik analizi yapılmaktadır. Sesiniz asla pazarlama verisi olarak 3. kişilere satılmaz.
+                  Kaydettiğiniz ses, gelişmiş yapay zeka (AI) ve konuşma tanıma (STT) modelleri üzerinden yalnızca yazılı metne dönüştürülmekte ve içerik analizi yapılmaktadır. Sesiniz asla pazarlama verisi olarak 3. kişilere satılmaz.
                 </p>
               </div>
 

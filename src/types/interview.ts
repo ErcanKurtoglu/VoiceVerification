@@ -65,7 +65,7 @@ export interface QuestionResponse {
 
 // --- Feedback Types ---
 export const FeedbackSchema = z.object({
-  rating: z.number().min(1).max(5),
+  rating: z.number().min(0).max(5).optional(),
   tags: z.array(z.string()),
   notes: z.string().optional(),
 });

@@ -6,6 +6,7 @@ import { Question, QuestionResponse } from "@/types/interview";
 import { useAudioRecorder } from "@/features/audio/hooks/useAudioRecorder";
 import { AudioRecorderControl } from "@/features/audio/components/AudioRecorderControl";
 import { AssistantDrawer } from "@/features/assistant/components/AssistantDrawer";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface QuestionCardProps {
   question: Question;
@@ -26,6 +27,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   onResponseSubmit,
   onPrevious,
 }) => {
+  const { t } = useLanguage();
   const [mode, setMode] = useState<"audio" | "text">(
     initialResponse?.mode || "audio"
   );
@@ -78,7 +80,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       {/* İlerleme ve Yardım Barı */}
       <div className="flex items-center justify-between gap-2 mb-6">
         <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wider">
-          Soru {questionNumber} / {totalQuestions}
+          {t.questionProgress} {questionNumber} / {totalQuestions}
         </span>
 
         {/* AI Asistana Danış Butonu */}
@@ -88,7 +90,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700/80 border border-slate-700 text-slate-300 hover:text-white text-xs font-medium transition-all group"
         >
           <HelpCircle className="w-3.5 h-3.5 text-indigo-400 group-hover:rotate-12 transition-transform" />
-          <span>Soruyu Anlamadım (AI Asistan)</span>
+          <span>{t.askAssistant}</span>
         </button>
       </div>
 
@@ -112,7 +114,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           }`}
         >
           <Mic className="w-3.5 h-3.5" />
-          <span>Sesli Yanıtla</span>
+          <span>{t.tabAudio}</span>
         </button>
 
         <button
@@ -125,7 +127,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           }`}
         >
           <PenLine className="w-3.5 h-3.5" />
-          <span>Yazarak Yanıtla</span>
+          <span>{t.tabText}</span>
         </button>
       </div>
 
@@ -145,11 +147,10 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               rows={4}
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
-              placeholder="Fikrinizi buraya yazabilirsiniz (en az 10 karakter)..."
+              placeholder={t.textPlaceholder}
               className="w-full p-4 rounded-2xl bg-slate-800/60 border border-slate-700 text-xs md:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all leading-relaxed"
             />
             <div className="flex justify-between items-center mt-2 px-1 text-[11px] text-slate-500">
-              <span>Fikirlerinizi serbestçe ifade edebilirsiniz.</span>
               <span>{textInput.trim().length} karakter</span>
             </div>
           </div>
@@ -166,7 +167,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-xs font-medium transition-all active:scale-95"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Önceki Soru</span>
+            <span>{t.prevQuestion}</span>
           </button>
         ) : (
           <div /> // Boşluğu korumak için
@@ -175,7 +176,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         <div className="flex items-center gap-3">
           {canProceed && (
             <span className="hidden sm:inline-flex text-emerald-400 items-center gap-1 text-xs font-medium">
-              <Check className="w-3.5 h-3.5" /> Yanıtınız hazır
+              <Check className="w-3.5 h-3.5" /> {t.recordSuccess}
             </span>
           )}
 
@@ -183,12 +184,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             type="button"
             onClick={handleNext}
             disabled={!canProceed}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs font-medium shadow-md transition-all active:scale-95"
+            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-30 disabled:cursor-not-allowed text-white text-xs font-medium shadow-md transition-all active:scale-95 cursor-pointer"
           >
             <span>
               {questionNumber === totalQuestions
-                ? "Son Adıma Geç"
-                : "Sonraki Soru"}
+                ? t.finishSurvey
+                : t.nextQuestion}
             </span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>

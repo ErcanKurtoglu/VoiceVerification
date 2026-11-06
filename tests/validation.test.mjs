@@ -97,8 +97,8 @@ describe("Validation: Participant Schema (Zod)", () => {
 });
 
 describe("Validation: Feedback Schema (Zod)", () => {
-  test("Geçerli 1-5 yıldız aralığındaki değerlendirmeleri onaylamalıdır", () => {
-    for (let star = 1; star <= 5; star++) {
+  test("Geçerli 0-5 yıldız aralığındaki değerlendirmeleri onaylamalıdır (0 = seçim yapılmadı)", () => {
+    for (let star = 0; star <= 5; star++) {
       const parsed = FeedbackSchema.safeParse({
         rating: star,
         tags: ["Hızlı", "Kolay"],
@@ -108,8 +108,8 @@ describe("Validation: Feedback Schema (Zod)", () => {
     }
   });
 
-  test("1'den küçük veya 5'ten büyük derecelendirmeleri reddetmelidir", () => {
-    const belowMin = FeedbackSchema.safeParse({ rating: 0, tags: [] });
+  test("0'dan küçük veya 5'ten büyük derecelendirmeleri reddetmelidir", () => {
+    const belowMin = FeedbackSchema.safeParse({ rating: -1, tags: [] });
     assert.strictEqual(belowMin.success, false);
 
     const aboveMax = FeedbackSchema.safeParse({ rating: 6, tags: [] });

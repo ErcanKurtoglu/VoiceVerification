@@ -13,6 +13,7 @@ import { OnboardingForm } from "./OnboardingForm";
 import { QuestionCard } from "./QuestionCard";
 import { FeedbackForm } from "@/features/feedback/components/FeedbackForm";
 import { CompletionCard } from "./CompletionCard";
+import { AlreadyCompletedCard } from "./AlreadyCompletedCard";
 import { generateUUID } from "@/lib/utils";
 
 interface InterviewWizardProps {
@@ -21,7 +22,7 @@ interface InterviewWizardProps {
   initialTracking?: TrackingData;
 }
 
-type WizardStep = "onboarding" | "questions" | "feedback" | "completed";
+type WizardStep = "onboarding" | "questions" | "feedback" | "completed" | "already_completed";
 
 export const InterviewWizard: React.FC<InterviewWizardProps> = ({
   project,
@@ -40,6 +41,26 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
 
   const storageKey = `voice_verification_session_${project.id}`;
 
+  const getCompletedUrlKey = () => {
+    if (typeof window === "undefined") return "";
+    const search = window.location.search || "direct";
+    const uid = tracking?.uid || initialTracking?.uid || "";
+    return `voice_verification_done_${project.id}_${search}_${uid}`;
+  };
+
+  // Bu bağlantı ile daha önce form doldurulduysa doğrudan 'already_completed' göster ve formu kapat
+  useEffect(() => {
+    try {
+      const key = getCompletedUrlKey();
+      if (key && localStorage.getItem(key) === "true") {
+        setStep("already_completed");
+        return;
+      }
+    } catch {
+      // ignore
+    }
+  }, [project.id]);
+
   // İlk yüklemede initialTracking'i kontrol et
   useEffect(() => {
     if (initialTracking) {
@@ -47,8 +68,10 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     }
   }, [initialTracking]);
 
-  // Oturum Direnci: Sayfa yenilenirse taslağı geri yükleme
+  // Oturum Direnci: Sayfa yenilenirse taslağı geri yükleme (Tamamlanmamışsa)
   useEffect(() => {
+    if (step === "already_completed") return;
+
     try {
       const saved = localStorage.getItem(storageKey);
       if (saved) {
@@ -65,7 +88,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     } catch {
       // LocalStorage hatası olursa sessizce geç
     }
-  }, [project.id, storageKey]);
+  }, [project.id, storageKey, step]);
 
   // Taslağı kaydetme
   const saveDraft = (
@@ -73,7 +96,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     updatedResponses: Record<string, QuestionResponse>,
     updatedTracking?: TrackingData
   ) => {
-    if (!updatedParticipant) return;
+    if (!updatedParticipant || step === "already_completed") return;
     try {
       const cleanResponses: Record<string, Partial<QuestionResponse>> = {};
       for (const [k, v] of Object.entries(updatedResponses)) {
@@ -109,7 +132,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     saveDraft(data, responses, trackingData);
   };
 
-  // Adım 2: Soru Cevaplandı ve İlerlendi (Tamamen İstemci Hafızasında Tutulur, Gereksiz Yükleme Yapılmaz)
+  // Adım 2: Soru Cevaplandı ve İlerlendi
   const handleQuestionSubmit = (response: QuestionResponse) => {
     const updatedResponses = {
       ...responses,
@@ -138,7 +161,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     setCurrentQuestionIndex(project.questions.length - 1);
   };
 
-  // Adım 3: Anket Tamamlandı, Feedback Verildi -> Yalnızca Kesinleşen Ses Dosyaları Supabase Storage'a Yüklenir ve Deşifre Edilir
+  // Adım 3: Anket Tamamlandı, Feedback Verildi
   const handleFeedbackSubmit = async (feedback: FeedbackData) => {
     if (!participant) return;
     setIsSubmitting(true);
@@ -185,7 +208,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
 
       await Promise.all(uploadTasks);
 
-      // 2. Oturum verisini oluştur ve /api/analyze'e gönder (Gemini deşifresi + Supabase DB kaydı)
+      // 2. Oturum verisini oluştur ve /api/analyze'e gönder (Yapay zeka deşifresi + Supabase DB kaydı)
       const sessionData: InterviewSession = {
         id: activeSessionId,
         projectId: project.id,
@@ -210,8 +233,19 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
         console.error("API hatası:", await res.text());
       }
 
-      // Yerel taslağı temizle
-      localStorage.removeItem(storageKey);
+      // 3. Form tamamlandı: Aktif URL'yi kapat, oturum taslağını sil ve tek seferlik katılımı mühürle
+      try {
+        const completedKey = getCompletedUrlKey();
+        if (completedKey) {
+          localStorage.setItem(completedKey, "true");
+        }
+        localStorage.removeItem(storageKey);
+        // Tarayıcı geçmişinde URL'i kapat/temizle
+        window.history.replaceState(null, "", window.location.pathname);
+      } catch {
+        // ignore
+      }
+
       setStep("completed");
     } catch (err) {
       console.error("Gönderim hatası:", err);
@@ -221,17 +255,10 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     }
   };
 
-  const handleReset = () => {
-    localStorage.removeItem(storageKey);
-    setParticipant(null);
-    setTracking(undefined);
-    setResponses({});
-    setCurrentQuestionIndex(0);
-    setStep("onboarding");
-  };
-
   return (
     <div className="w-full flex flex-col items-center justify-center min-h-[500px]">
+      {step === "already_completed" && <AlreadyCompletedCard />}
+
       {step === "onboarding" && (
         <OnboardingForm
           project={project}
@@ -262,7 +289,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
       )}
 
       {step === "completed" && participant && (
-        <CompletionCard participant={participant} onReset={handleReset} />
+        <CompletionCard participant={participant} />
       )}
     </div>
   );

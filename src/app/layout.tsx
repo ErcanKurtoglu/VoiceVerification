@@ -18,6 +18,8 @@ export const metadata: Metadata = {
     "Sektör profesyonellerinin acı noktalarını ve yeni ürün fikirlerini asenkron sesli görüşmelerle doğrulayan yeni nesil AI platformu.",
 };
 
+import { LanguageProvider } from "@/context/LanguageContext";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -29,7 +31,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col bg-slate-950 text-slate-100">
-        {children}
+        <LanguageProvider>{children}</LanguageProvider>
       </body>
     </html>
   );

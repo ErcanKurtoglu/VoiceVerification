@@ -6,7 +6,7 @@ export const PRINT_IT_RIGHT_SURVEY: SurveyConfig = {
   title: "Print It Right: Gıdaya Uygun 3B Parça Doğrulama Araştırması",
   tagline: "A-Side Challenge • AI Destekli Gıda Güvenliğine Uygun Parça Üretimi",
   description:
-    "Gıda üretim tesislerinde ve dolum hatlarında yaşanan plansız duruşları önlemek amacıyla; gıdayla temasa uygun (EU 1935/2004, FDA 21 CFR 177), ısıya ve kimyasallara dayanıklı parçaların yapay zeka ile 3B tasarlanıp 24-48 saatte üretilmesini araştırıyoruz. Katılımcılara araştırma sonunda '2026 Türkiye Gıda Sanayi Duruş & 3B Parça Benchmark Raporu' iletilecektir.",
+    "Gıda üretim tesislerinde ve dolum hatlarında yaşanan plansız duruşları önlemek amacıyla; gıdayla temasa uygun (EU 1935/2004, FDA 21 CFR 177), ısıya ve kimyasallara dayanıklı parçaların yapay zeka ile 3B tasarlanıp 24-48 saatte üretilmesini araştırıyoruz.",
   targetAudience:
     "Bakım Mühendisleri, Tesis/Operasyon Yöneticileri, Gıda Makineleri Üreticileri (OEM) ve Kalite Ekipleri",
   estimatedMinutes: 3,
@@ -15,7 +15,7 @@ export const PRINT_IT_RIGHT_SURVEY: SurveyConfig = {
     "Gürültülü bir ortamdaysanız tek tıkla 'Yazarak Yanıtla' sekmesine geçebilirsiniz.",
     "Soruyu açmak veya fabrika örnekleri istemek için 'AI Asistan'a danışabilirsiniz.",
     "Ses kaydınız asla biyometrik ses izi olarak işlenmez; göndermeden önce dinleyebilir veya silebilirsiniz.",
-    "Tamamladığınızda sektörel kıyaslama (benchmark) yönetici özeti e-postanıza gönderilecektir.",
+    "Görüşleriniz anonim olarak ürün geliştirme yol haritamızı şekillendirmek için kullanılacaktır.",
   ],
   aiContext: `
     Sen "Print It Right: AI-Designed Food-Safe Parts On Demand" araştırma projesinin teknik uzman asistanısın.

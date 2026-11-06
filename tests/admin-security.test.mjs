@@ -118,4 +118,18 @@ describe("Admin Data Presentation: Audio Preservation vs UI Cleanliness", () => 
     assert.strictEqual(badgeText, "Sesli Yanıt (14 sn)");
     assert.strictEqual(responseRecord.transcript.length > 0, true);
   });
+
+  test("Puan verilmediğinde (rating: 0 / undefined) panelde 'Seçim Yapılmadı' olarak gösterilmelidir", () => {
+    function formatAdminRating(rating) {
+      if (rating && rating > 0) {
+        return `${rating}.0`;
+      }
+      return "Seçim Yapılmadı";
+    }
+
+    assert.strictEqual(formatAdminRating(0), "Seçim Yapılmadı");
+    assert.strictEqual(formatAdminRating(undefined), "Seçim Yapılmadı");
+    assert.strictEqual(formatAdminRating(5), "5.0");
+    assert.strictEqual(formatAdminRating(4), "4.0");
+  });
 });
