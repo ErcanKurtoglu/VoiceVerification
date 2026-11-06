@@ -61,7 +61,7 @@ export class SupabaseAudioStorageProvider implements AudioStorageProvider {
   private supabaseKey: string;
   private bucket: string;
 
-  constructor(supabaseUrl: string, supabaseKey: string, bucket = "voice-verification") {
+  constructor(supabaseUrl: string, supabaseKey: string, bucket = "voice-recordings") {
     this.supabaseUrl = supabaseUrl.replace(/\/$/, "");
     this.supabaseKey = supabaseKey;
     this.bucket = bucket;

@@ -45,11 +45,13 @@ export class LocalFileStorageService implements StorageService {
   }
 }
 
+import { SupabaseStorageService } from "./supabase-storage-provider";
+
 let storageInstance: StorageService | null = null;
 
 export function getStorageService(): StorageService {
   if (!storageInstance) {
-    storageInstance = new LocalFileStorageService();
+    storageInstance = new SupabaseStorageService();
   }
   return storageInstance;
 }

@@ -293,6 +293,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({ project, onSubmi
           </div>
         </div>
 
+        {/* LinkedIn Profili şimdilik pasife alındı
         <div>
           <label className="block text-xs font-medium text-slate-300 mb-1.5">
             LinkedIn Profili <span className="text-slate-500 font-normal">(İsteğe bağlı)</span>
@@ -306,6 +307,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({ project, onSubmi
             className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/80 border border-slate-700/80 text-white text-xs placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all"
           />
         </div>
+        */}
 
         {/* 5. KVKK / Gizlilik & Ses Rızası Onayı */}
         <div className="pt-2">
