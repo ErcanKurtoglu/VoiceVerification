@@ -11,6 +11,7 @@ export class GeminiAIService implements AIService {
   async chatClarification(params: {
     questionTitle: string;
     questionDescription: string;
+    questionHint?: string;
     userQuery: string;
     conversationHistory: ChatMessage[];
     projectContext: string;
@@ -21,8 +22,9 @@ export class GeminiAIService implements AIService {
       Şu anda katılımcı şu soruyu yanıtlamaya çalışıyor:
       Soru Başlığı: ${params.questionTitle}
       Soru Açıklaması: ${params.questionDescription}
+      ${params.questionHint ? `Bu Soru İçin Özel İpucu / Kapsam: ${params.questionHint}` : ""}
 
-      Görevin: Katılımcıya sorunun kapsamını, neden bu sorunun sorulduğunu net, samimi, tarafsız ve en fazla 2-3 kısa paragrafta açıklamak. Katılımcının kendi tecrübesine odaklanmasını sağla.
+      Görevin: Katılımcıya sorunun kapsamını, neden bu sorunun sorulduğunu net, samimi, tarafsız ve en fazla 2-3 kısa paragrafta açıklamak. Katılımcının kendi tecrübesine odaklanmasını sağla. Asla katılımcı yerine cevabı kendin uydurma.
     `;
 
     const contents = [

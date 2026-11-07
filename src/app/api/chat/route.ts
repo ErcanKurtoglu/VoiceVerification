@@ -5,6 +5,7 @@ import { getAIService } from "@/services/ai";
 const ChatRequestSchema = z.object({
   questionTitle: z.string().min(1),
   questionDescription: z.string().min(1),
+  questionHint: z.string().optional(),
   userQuery: z.string().min(1).max(500, "Mesajınız 500 karakteri geçemez."),
   conversationHistory: z.array(
     z.object({
@@ -27,8 +28,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { questionTitle, questionDescription, userQuery, conversationHistory, projectContext } =
-      validation.data;
+    const {
+      questionTitle,
+      questionDescription,
+      questionHint,
+      userQuery,
+      conversationHistory,
+      projectContext,
+    } = validation.data;
 
     // DoS & Abuse Koruması: Bir soru için maksimum 6 tur konuşma izni
     if (conversationHistory.length >= 10) {
@@ -45,6 +52,7 @@ export async function POST(req: NextRequest) {
     const reply = await ai.chatClarification({
       questionTitle,
       questionDescription,
+      questionHint,
       userQuery,
       conversationHistory,
       projectContext,

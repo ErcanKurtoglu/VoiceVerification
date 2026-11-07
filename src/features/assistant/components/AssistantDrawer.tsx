@@ -47,6 +47,7 @@ export const AssistantDrawer: React.FC<AssistantDrawerProps> = ({
         body: JSON.stringify({
           questionTitle: question.title,
           questionDescription: question.description,
+          questionHint: question.clarificationHint,
           userQuery: text,
           conversationHistory: messages,
           projectContext,

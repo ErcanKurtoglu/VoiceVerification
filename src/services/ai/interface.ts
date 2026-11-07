@@ -12,6 +12,7 @@ export interface AIService {
   chatClarification(params: {
     questionTitle: string;
     questionDescription: string;
+    questionHint?: string;
     userQuery: string;
     conversationHistory: ChatMessage[];
     projectContext: string;
