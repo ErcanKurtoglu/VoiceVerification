@@ -319,6 +319,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
           questionNumber={currentQuestionIndex + 1}
           totalQuestions={project.questions.length}
           projectContext={getLocalizedText(project, "aiContext", lang) || project.aiContext}
+          participant={participant}
           initialResponse={responses[project.questions[currentQuestionIndex].id]}
           onResponseSubmit={handleQuestionSubmit}
           onSaveDraft={handleSaveQuestionDraft}

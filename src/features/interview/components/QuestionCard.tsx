@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Mic, PenLine, HelpCircle, ArrowRight, ArrowLeft, Check, Clock, AlertCircle } from "lucide-react";
-import { Question, QuestionResponse } from "@/types/interview";
+import { Mic, PenLine, HelpCircle, ArrowRight, ArrowLeft, Check, Clock, AlertCircle, Sparkles } from "lucide-react";
+import { Question, QuestionResponse, ParticipantData } from "@/types/interview";
 import { useAudioRecorder } from "@/features/audio/hooks/useAudioRecorder";
 import { AudioRecorderControl } from "@/features/audio/components/AudioRecorderControl";
 import { AssistantDrawer } from "@/features/assistant/components/AssistantDrawer";
@@ -15,6 +15,7 @@ interface QuestionCardProps {
   questionNumber: number;
   totalQuestions: number;
   projectContext: string;
+  participant?: ParticipantData | null;
   initialResponse?: QuestionResponse;
   onResponseSubmit: (response: QuestionResponse) => void;
   onSaveDraft?: (response: QuestionResponse) => void;
@@ -27,6 +28,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   questionNumber,
   totalQuestions,
   projectContext,
+  participant,
   initialResponse,
   onResponseSubmit,
   onSaveDraft,
@@ -139,6 +141,28 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       </div>
 
       {/* Soru Başlığı ve Açıklaması */}
+      {/* Soru Bağlamı & Faz Rozeti (Hatırlatıcı Çapa) */}
+      <div className="flex flex-wrap items-center gap-2 mb-2.5">
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[11px] font-semibold tracking-wide">
+          <Sparkles className="w-3 h-3" />
+          {(() => {
+            if (questionNumber <= 2) {
+              return lang === "en" ? "Phase 1: Event & Part Role" : "Faz 1: Olay & Parçanın Rolü";
+            }
+            if (questionNumber <= 4) {
+              return lang === "en" ? "Phase 2: Response & Part Data" : "Faz 2: İlk Müdahale & Parça Bilgisi";
+            }
+            if (questionNumber <= 6) {
+              return lang === "en" ? "Phase 3: Solutions & Hygiene Environment" : "Faz 3: Çözüm Alternatifleri & Hijyen Şartları";
+            }
+            return lang === "en" ? "Phase 4: Operational Impact & Outcome" : "Faz 4: Operasyonel Etki, Roller & Sonuç";
+          })()}
+        </span>
+        <span className="text-[11px] text-slate-400 font-medium">
+          {lang === "en" ? "• Case Focus: Specific part event" : "• Vaka Odağı: Belirlediğiniz somut parça"}
+        </span>
+      </div>
+
       <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight leading-snug mb-3">
         {getLocalizedText(question, "title", lang)}
       </h2>
@@ -309,6 +333,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         question={question}
         projectContext={projectContext}
         lang={lang}
+        participantRole={participant?.title}
+        participantCompany={participant?.company}
       />
     </div>
   );

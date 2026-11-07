@@ -13,6 +13,8 @@ interface AssistantDrawerProps {
   question: Question;
   projectContext: string;
   lang?: Language;
+  participantRole?: string;
+  participantCompany?: string;
 }
 
 export const AssistantDrawer: React.FC<AssistantDrawerProps> = ({
@@ -21,6 +23,8 @@ export const AssistantDrawer: React.FC<AssistantDrawerProps> = ({
   question,
   projectContext,
   lang: propLang,
+  participantRole,
+  participantCompany,
 }) => {
   const { t, lang: ctxLang } = useLanguage();
   const activeLang = propLang || ctxLang || "tr";
@@ -58,6 +62,8 @@ export const AssistantDrawer: React.FC<AssistantDrawerProps> = ({
           userQuery: text,
           conversationHistory: messages,
           projectContext,
+          participantRole,
+          participantCompany,
         }),
       });
 

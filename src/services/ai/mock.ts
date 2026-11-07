@@ -9,6 +9,8 @@ export class MockAIService implements AIService {
     conversationHistory: ChatMessage[];
     projectContext: string;
     lang?: "tr" | "en";
+    participantRole?: string;
+    participantCompany?: string;
   }): Promise<string> {
     const q = params.userQuery.toLowerCase();
     const isEn = params.lang === "en" || q.includes("safe") || q.includes("advice") || q.includes("suitability") || q.includes("example") || q.includes("mean");

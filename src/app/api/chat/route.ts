@@ -15,6 +15,8 @@ const ChatRequestSchema = z.object({
   ),
   projectContext: z.string(),
   lang: z.enum(["tr", "en"]).optional().default("tr"),
+  participantRole: z.string().optional(),
+  participantCompany: z.string().optional(),
 });
 
 export async function POST(req: NextRequest) {
@@ -37,6 +39,8 @@ export async function POST(req: NextRequest) {
       conversationHistory,
       projectContext,
       lang,
+      participantRole,
+      participantCompany,
     } = validation.data;
 
     // DoS & Abuse Koruması: Bir soru için maksimum 6-10 tur konuşma izni
@@ -57,6 +61,8 @@ export async function POST(req: NextRequest) {
       conversationHistory,
       projectContext,
       lang,
+      participantRole,
+      participantCompany,
     });
 
     return NextResponse.json({ reply });

@@ -41,6 +41,8 @@ export interface AIService {
     conversationHistory: ChatMessage[];
     projectContext: string;
     lang?: "tr" | "en";
+    participantRole?: string;
+    participantCompany?: string;
   }): Promise<string>;
 
   transcribeAudioOrText(params: {
