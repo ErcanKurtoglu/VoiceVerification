@@ -45,7 +45,15 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
   const [consentTab, setConsentTab] = useState<"kvkk" | "terms" | "biometric">("kvkk");
 
   const [tracking, setTracking] = useState<TrackingData>({});
-  const [isPreFilled, setIsPreFilled] = useState(false);
+  
+  // Sadece ve sadece sunucudan / URL'den önceden tanımlanmış özel davetiyelerde aktifleşir
+  const [isDirectUrlParticipant, setIsDirectUrlParticipant] = useState(() => {
+    return Boolean(
+      initialParticipant?.fullName &&
+      initialParticipant?.email &&
+      initialParticipant?.company
+    );
+  });
 
   const [formData, setFormData] = useState<ParticipantData>({
     fullName: initialParticipant?.fullName || "",
@@ -60,8 +68,8 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    // 1. Initial participant varsa doğrudan uygula
-    if (initialParticipant?.fullName && initialParticipant?.email) {
+    // 1. Initial participant (token ile gelen) varsa doğrudan uygula ve özel davet modunu aç
+    if (initialParticipant?.fullName && initialParticipant?.email && initialParticipant?.company) {
       setFormData((prev) => ({
         ...prev,
         fullName: initialParticipant.fullName || prev.fullName,
@@ -70,7 +78,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
         title: initialParticipant.title || prev.title,
         consentGiven: initialParticipant.consentGiven || prev.consentGiven,
       }));
-      setIsPreFilled(true);
+      setIsDirectUrlParticipant(true);
       return;
     }
 
@@ -97,6 +105,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
     });
 
     // 3. Standart Query Parametreleri (?name=...&email=...&company=...&title=...)
+    // Yalnızca URL'de hem isim hem e-posta hem şirket parametresi açıkça mevcutsa
     const nameParam = searchParams.get("name") || "";
     const emailParam = searchParams.get("email") || "";
     const companyParam = searchParams.get("company") || "";
@@ -104,13 +113,13 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
     const linkedinParam = searchParams.get("linkedin") || "";
     const consentParam = searchParams.get("consent") === "true";
 
-    if (nameParam || emailParam || companyParam || titleParam) {
-      setIsPreFilled(true);
+    if (nameParam && emailParam && companyParam) {
+      setIsDirectUrlParticipant(true);
       setFormData((prev) => ({
         ...prev,
-        fullName: nameParam || prev.fullName,
-        email: emailParam || prev.email,
-        company: companyParam || prev.company,
+        fullName: nameParam,
+        email: emailParam,
+        company: companyParam,
         title: titleParam || prev.title,
         linkedinUrl: linkedinParam || prev.linkedinUrl,
         consentGiven: consentParam ? true : prev.consentGiven,
@@ -157,11 +166,6 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
 
     onSubmit(result.data, tracking);
   };
-
-  // URL ile gelen ve bilgileri tanımlanmış katılımcı modu (Sadece Privacy Check)
-  const isDirectUrlParticipant = Boolean(
-    formData.fullName && formData.email && formData.company
-  );
 
   return (
     <div className="w-full max-w-xl mx-auto p-6 md:p-8 rounded-3xl bg-slate-900/95 border border-slate-800 shadow-2xl backdrop-blur-xl animate-fadeIn">
@@ -238,9 +242,18 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
           /* Senaryo A: Özel URL İle Gelen Katılımcı (Bilgiler Hazır, Sadece Privacy Check) */
           <div className="space-y-4 animate-fadeIn">
             <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-slate-200">
-              <div className="flex items-center gap-2 text-indigo-400 text-xs font-semibold mb-2">
-                <UserCheck className="w-4 h-4" />
-                <span>Özel Davetiyeniz Doğrulandı</span>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2 text-indigo-400 text-xs font-semibold">
+                  <UserCheck className="w-4 h-4" />
+                  <span>Özel Davetiyeniz Doğrulandı</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsDirectUrlParticipant(false)}
+                  className="text-[11px] text-slate-400 hover:text-indigo-300 underline font-medium cursor-pointer"
+                >
+                  Bilgileri Düzenle
+                </button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                 <div>

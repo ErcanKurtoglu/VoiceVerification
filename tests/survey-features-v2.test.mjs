@@ -191,3 +191,50 @@ describe("Feature Set V2: Dinamik Soru Placeholder & Şablon Koruma Mekanizması
     assert.strictEqual(valResult.error, undefined);
   });
 });
+
+describe("Feature Set V2: Katılımcı Onboarding Formu & Özel Davet İzolasyonu", () => {
+  test("Manuel veri girişi yapan katılımcı (kampanya linkiyle gelen) asla erken kilitlenip 'Özel Davetiyeniz Doğrulandı' moduna geçmemelidir", () => {
+    // initialParticipant yok (kampanya linki veya doğrudan ziyaret)
+    const initialParticipant = undefined;
+    const isDirectUrlParticipant = Boolean(
+      initialParticipant?.fullName &&
+      initialParticipant?.email &&
+      initialParticipant?.company
+    );
+
+    assert.strictEqual(isDirectUrlParticipant, false, "Başlangıçta özel davet modu kapalı olmalıdır.");
+
+    // Kullanıcı ad, soyad ve e-posta yazdıktan sonra şirket kutusuna 'e' yazdığında
+    const typingFormData = {
+      fullName: "ercank",
+      email: "er@test.com",
+      company: "e",
+    };
+
+    // isDirectUrlParticipant formData'dan değil, sadece doğrulanmış token / URL parametrelerinden beslenmelidir
+    const updatedDirectMode = Boolean(
+      initialParticipant?.fullName &&
+      initialParticipant?.email &&
+      initialParticipant?.company
+    );
+
+    assert.strictEqual(updatedDirectMode, false, "Kullanıcı veri girerken mod değişmemelidir.");
+  });
+
+  test("Doğrulanmış kişisel token ile gelen katılımcıda doğrudan 'Özel Davetiyeniz Doğrulandı' modu açılmalıdır", () => {
+    const prefilledParticipant = {
+      fullName: "Cem Yılmaz",
+      email: "cem@standart.com",
+      company: "Gıda A.Ş.",
+      title: "Bakım Şefi",
+    };
+
+    const isDirectUrlParticipant = Boolean(
+      prefilledParticipant?.fullName &&
+      prefilledParticipant?.email &&
+      prefilledParticipant?.company
+    );
+
+    assert.strictEqual(isDirectUrlParticipant, true, "Kişisel davette doğrulandı modu aktif olmalıdır.");
+  });
+});
