@@ -115,7 +115,6 @@ function AdminDashboardContent() {
   const [newSurveyTagline, setNewSurveyTagline] = useState("");
   const [newSurveyDesc, setNewSurveyDesc] = useState("");
   const [newSurveyPin, setNewSurveyPin] = useState("");
-  const [newSurveyAudience, setNewSurveyAudience] = useState("");
   const [newSurveyAiContext, setNewSurveyAiContext] = useState("");
   const [newSurveyQuestions, setNewSurveyQuestions] = useState<Array<{ title: string; description: string; clarificationHint: string }>>([
     { title: "", description: "", clarificationHint: "" },
@@ -129,7 +128,6 @@ function AdminDashboardContent() {
     setNewSurveyTagline("");
     setNewSurveyDesc("");
     setNewSurveyPin("");
-    setNewSurveyAudience("");
     setNewSurveyAiContext("");
     setNewSurveyQuestions([
       { title: "", description: "", clarificationHint: "" },
@@ -360,7 +358,6 @@ function AdminDashboardContent() {
           title: newSurveyTitle.trim(),
           tagline: newSurveyTagline.trim() || "Doğrulama",
           description: newSurveyDesc.trim(),
-          targetAudience: newSurveyAudience.trim(),
           accessPin: newSurveyPin.trim().toUpperCase(),
           aiContext: newSurveyAiContext.trim() || newSurveyDesc.trim(),
           questions: formattedQuestions,
@@ -1359,9 +1356,9 @@ function AdminDashboardContent() {
                       </p>
 
                       <div className="text-[11px] text-slate-400 space-y-1 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
-                        <div>
+                        <div className="flex items-center gap-1.5">
                           <strong className="text-slate-300">Hedef Kitle: </strong>
-                          {sv.targetAudience || "Sektör Profesyonelleri"}
+                          <span className="text-indigo-400 font-medium">Link üretirken esnek belirlenir</span>
                         </div>
                         <div>
                           <strong className="text-slate-300">Soru Sayısı: </strong>
@@ -1515,38 +1512,27 @@ function AdminDashboardContent() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">
-                      Kısa Etiket (Tagline)
-                    </label>
-                    <p className="text-[11px] text-slate-500 mb-1.5 leading-tight">
-                      Katılımcı ekranının en üstünde rozet (badge) olarak görünen 2-4 kelimelik konu/kategori etiketi.
-                    </p>
-                    <input
-                      type="text"
-                      value={newSurveyTagline}
-                      onChange={(e) => setNewSurveyTagline(e.target.value)}
-                      placeholder="Örn: IoT & Donanım Doğrulaması"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-300 mb-1">
+                    Kısa Etiket (Tagline)
+                  </label>
+                  <p className="text-[11px] text-slate-500 mb-1.5 leading-tight">
+                    Katılımcı ekranının en üstünde rozet (badge) olarak görünen 2-4 kelimelik konu/kategori etiketi.
+                  </p>
+                  <input
+                    type="text"
+                    value={newSurveyTagline}
+                    onChange={(e) => setNewSurveyTagline(e.target.value)}
+                    placeholder="Örn: IoT & Donanım Doğrulaması"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">
-                      Hedef Kitle (Target Audience)
-                    </label>
-                    <p className="text-[11px] text-slate-500 mb-1.5 leading-tight">
-                      Bu araştırmanın yöneltildiği profesyonel unvanlar (Örn: Bakım Mühendisleri, Fabrika Yöneticileri).
-                    </p>
-                    <input
-                      type="text"
-                      value={newSurveyAudience}
-                      onChange={(e) => setNewSurveyAudience(e.target.value)}
-                      placeholder="Örn: Lojistik Müdürleri, Kalite Şefleri"
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
+                <div className="p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/20 text-xs text-indigo-300 flex items-start gap-2">
+                  <Sparkles className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+                  <span className="leading-relaxed text-[11px]">
+                    <strong>Hedef Kitle Bağımsızlığı:</strong> Bu anket tek bir meslek grubuna kilitlenmez. Anket kaydedildikten sonra, <em>Link Üretici</em> üzerinden farklı sektör çalışanlarına (örn: <em>Bakım Mühendisleri, Kalite Şefleri, Satın Alma</em>) özel kitle etiketli paylaşım linkleri oluşturabilirsiniz.
+                  </span>
                 </div>
 
                 <div>
