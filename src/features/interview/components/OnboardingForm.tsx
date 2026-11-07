@@ -77,7 +77,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
         email: initialParticipant.email || prev.email,
         company: initialParticipant.company || prev.company,
         title: initialParticipant.title || prev.title,
-        consentGiven: initialParticipant.consentGiven || prev.consentGiven,
+        consentGiven: true,
       }));
       setIsDirectUrlParticipant(true);
       return;
@@ -123,7 +123,7 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
         company: companyParam,
         title: titleParam || prev.title,
         linkedinUrl: linkedinParam || prev.linkedinUrl,
-        consentGiven: consentParam ? true : prev.consentGiven,
+        consentGiven: true,
       }));
     }
   }, [searchParams, initialParticipant]);
@@ -266,112 +266,36 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
                   <span className="text-slate-200">{formData.company} • {formData.title}</span>
                 </div>
               </div>
-              <div className="mt-2 pt-2 border-t border-indigo-500/20 text-[11px] text-slate-400">
-                <span>{t.verifiedInviteEmail}: </span>
-                <span className="text-slate-300 font-mono">{formData.email}</span>
+              <div className="mt-3 pt-2.5 border-t border-indigo-500/20 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
+                <div>
+                  <span>{t.verifiedInviteEmail}: </span>
+                  <span className="text-slate-300 font-mono">{formData.email}</span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConsentTab("kvkk");
+                      setIsConsentOpen(true);
+                    }}
+                    className="text-indigo-400 hover:text-indigo-300 underline font-medium cursor-pointer"
+                  >
+                    {t.kvkkLink}
+                  </button>
+                  <span className="text-slate-600">•</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setConsentTab("terms");
+                      setIsConsentOpen(true);
+                    }}
+                    className="text-indigo-400 hover:text-indigo-300 underline font-medium cursor-pointer"
+                  >
+                    {t.termsLink}
+                  </button>
+                </div>
               </div>
             </div>
-
-            {/* Gizlilik ve KVKK Onay Durumu */}
-            {formData.consentGiven ? (
-              <div className="p-3.5 rounded-2xl bg-emerald-950/30 border border-emerald-500/20 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
-                    <CheckCircle2 className="w-4 h-4" />
-                  </div>
-                  <div className="text-xs text-slate-300">
-                    <span className="font-semibold text-emerald-400 block">
-                      {lang === "en" ? "KVKK & GDPR Consent Verified" : "KVKK & GDPR Onayı Doğrulandı"}
-                    </span>
-                    <span className="text-[11px] text-slate-400">
-                      {lang === "en"
-                        ? "Consent was confirmed during your initial access entry."
-                        : "Katılım ve veri işleme onayınız giriş aşamasında teyit edildi."}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setConsentTab("kvkk");
-                    setIsConsentOpen(true);
-                  }}
-                  className="text-[11px] text-indigo-400 hover:text-indigo-300 underline font-medium shrink-0 cursor-pointer"
-                >
-                  {lang === "en" ? "View Notice" : "Metni İncele"}
-                </button>
-              </div>
-            ) : (
-              <div className="p-3.5 rounded-2xl bg-slate-950/60 border border-slate-800">
-                <label className="flex items-start gap-3 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    name="consentGiven"
-                    checked={formData.consentGiven}
-                    onChange={handleChange}
-                    className="mt-1 w-4 h-4 rounded border-slate-700 bg-slate-800 text-indigo-600 focus:ring-indigo-500/30 cursor-pointer"
-                  />
-                  <span className="text-xs text-slate-300 leading-relaxed">
-                    {lang === "en" ? (
-                      <>
-                        I agree to content transcription, anonymous research aggregation,{" "}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setConsentTab("terms");
-                            setIsConsentOpen(true);
-                          }}
-                          className="text-indigo-400 hover:text-indigo-300 underline font-medium"
-                        >
-                          {t.termsLink}
-                        </button>{" "}
-                        and{" "}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setConsentTab("kvkk");
-                            setIsConsentOpen(true);
-                          }}
-                          className="text-indigo-400 hover:text-indigo-300 underline font-medium"
-                        >
-                          {t.kvkkLink}
-                        </button>
-                        .
-                      </>
-                    ) : (
-                      <>
-                        Ses kaydımın bu araştırma kapsamında deşifre edilmesini, anonim olarak işlenmesini ve{" "}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setConsentTab("terms");
-                            setIsConsentOpen(true);
-                          }}
-                          className="text-indigo-400 hover:text-indigo-300 underline font-medium"
-                        >
-                          {t.termsLink}
-                        </button>{" "}
-                        ile{" "}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setConsentTab("kvkk");
-                            setIsConsentOpen(true);
-                          }}
-                          className="text-indigo-400 hover:text-indigo-300 underline font-medium"
-                        >
-                          {t.kvkkLink}
-                        </button>{" "}
-                        kabul ediyorum.
-                      </>
-                    )}
-                  </span>
-                </label>
-                {errors.consentGiven && (
-                  <span className="text-[11px] text-red-400 mt-2 block">{errors.consentGiven}</span>
-                )}
-              </div>
-            )}
 
             <button
               type="submit"

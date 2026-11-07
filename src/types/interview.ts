@@ -94,5 +94,6 @@ export interface InterviewSession {
   tracking?: TrackingData;
   responses: Record<string, QuestionResponse>;
   feedback?: FeedbackData;
+  aiSanity?: { isJunk?: boolean; confidenceScore?: number };
   status: "in_progress" | "completed" | "abandoned";
 }

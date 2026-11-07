@@ -26,7 +26,7 @@ const MODAL_CONTENT = {
     title: "Hukuki Şartlar & Veri Güvenliği",
     subtitle: "VoiceVerification AI • Print It Right Araştırma Çerçevesi",
     closeAria: "Kapat",
-    contactEmail: "ercannkurtogl@hotmail.com",
+    contactEmail: "voiceverifyai@gmail.com",
     tabs: {
       kvkk: "KVKK & GDPR Aydınlatma",
       biometric: "Biyometrik Güvence",
@@ -37,7 +37,7 @@ const MODAL_CONTENT = {
         "Bu aydınlatma metni; 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) m. 10 ve AB Genel Veri Koruma Tüzüğü (GDPR) m. 13-14 uyarınca, veri sorumlusu sıfatıyla katılımcıları bilgilendirmek ve şeffaflığı sağlamak amacıyla hazırlanmıştır.",
       sec1Title: "1. Veri Sorumlusu ve İletişim Kanalları",
       sec1Text:
-        "Veri sorumlusu Ercan Kurtoğlu / VoiceVerification AI Ar-Ge Projesi'dir. KVKK ve GDPR kapsamındaki tüm soru, bilgi edinme, silme veya rıza geri çekme talepleriniz için doğrudan veri sorumlusuna başvurabilirsiniz:",
+        "Veri sorumlusu VoiceVerify AI Araştırma Ekibi'dir (VoiceVerify AI Research Team). KVKK ve GDPR kapsamındaki tüm soru, bilgi edinme, silme veya rıza geri çekme talepleriniz için doğrudan araştırma ekibine başvurabilirsiniz:",
       sec2Title: "2. İşlenen Kişisel Veri Kategorileri & Toplama Yöntemi",
       sec2Text:
         "Araştırma kapsamında; Kimlik (Ad-Soyad), İletişim (E-posta), Mesleki Deneyim (Çalışılan Şirket/Tesis, Görev/Unvan), İşlem Güvenliği (Oturum ID, zaman damgası) ve İşitsel/İçeriksel Veri (Ses kayıtları ve transkriptler) toplanmaktadır. Veriler, anket web arayüzü üzerinden elektronik ortamda ve tamamen katılımcının kendi iradesiyle iletilmektedir.",
@@ -87,7 +87,7 @@ const MODAL_CONTENT = {
     title: "Legal Terms & Data Security",
     subtitle: "VoiceVerification AI • Print It Right Research Framework",
     closeAria: "Close",
-    contactEmail: "ercannkurtogl@hotmail.com",
+    contactEmail: "voiceverifyai@gmail.com",
     tabs: {
       kvkk: "GDPR & KVKK Notice",
       biometric: "Biometric Protection",
@@ -98,7 +98,7 @@ const MODAL_CONTENT = {
         "This Privacy Notice is provided in accordance with Articles 13 & 14 of the EU General Data Protection Regulation (GDPR) and Article 10 of Turkish Law No. 6698 (KVKK) to ensure full transparency regarding data controller practices.",
       sec1Title: "1. Data Controller & Direct Contact Channel",
       sec1Text:
-        "The data controller is Ercan Kurtoğlu / VoiceVerification AI R&D Project. For any questions, data access requests, or consent withdrawal under GDPR and KVKK, please contact directly:",
+        "The data controller is the VoiceVerify AI Research Team. For any questions, data access requests, or consent withdrawal under GDPR and KVKK, please contact the research team directly:",
       sec2Title: "2. Categories of Personal Data & Collection Method",
       sec2Text:
         "We collect: Identity Data (Full Name), Contact Data (Email Address), Professional Background (Company/Plant, Job Title/Role), Technical Security Data (Session ID, timestamp), and Audio/Verbatim Data (Voice recordings and Speech-to-Text transcripts). All data is voluntarily provided by participants through our interactive web questionnaire.",

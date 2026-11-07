@@ -42,6 +42,7 @@ import { InterviewSession, SurveyConfig, Question } from "@/types/interview";
 import { getAllSurveys, PRINT_IT_RIGHT_SURVEY } from "@/surveys";
 import { validateSurveyQuestion } from "@/features/anti-garbage/survey-validator";
 import { formatTime } from "@/lib/utils";
+import { generateSurveyCSV } from "@/lib/csv-export";
 
 const QUESTION_PLACEHOLDERS = [
   {
@@ -810,93 +811,14 @@ function AdminDashboardContent() {
   const executeCSVExport = () => {
     if (sessionsToExport.length === 0) return;
 
-    const matchedSingleSurvey =
-      exportSurveyId !== "all"
-        ? getSurveyForSession(exportSurveyId, surveysList)
-        : null;
-
-    let maxQuestions = matchedSingleSurvey?.questions?.length || 3;
-    sessionsToExport.forEach((s) => {
-      const respCount = Object.keys(s.responses || {}).length;
-      if (respCount > maxQuestions) maxQuestions = respCount;
+    const { csvContent, fileName } = generateSurveyCSV({
+      sessions: sessions,
+      surveysList,
+      exportSurveyId,
+      exportAudience,
+      exportOnlyValid: false,
     });
 
-    const questionHeaders = Array.from({ length: maxQuestions }, (_, i) => {
-      if (matchedSingleSurvey?.questions?.[i]?.title) {
-        const cleanTitle = matchedSingleSurvey.questions[i].title.replace(/"/g, '""');
-        return `Soru ${i + 1} (${cleanTitle}): Deşifre`;
-      }
-      return `Soru ${i + 1} Deşifre`;
-    });
-
-    const headers = [
-      "Oturum ID",
-      "Anket",
-      "Katılımcı",
-      "E-posta",
-      "Şirket",
-      "Unvan",
-      "Hedef Kitle / Segment",
-      "UID",
-      "Deneyim Puanı",
-      "Beğenilen Özellikler (Etiketler)",
-      "Geri Bildirim Notu / Önerisi",
-      "Tarih",
-      ...questionHeaders,
-    ];
-
-    const rows = sessionsToExport.map((s) => {
-      const matchedSurvey =
-        matchedSingleSurvey || getSurveyForSession(s.projectId, surveysList);
-      const responsesList = Object.values(s.responses || {});
-
-      const questionCols = Array.from({ length: maxQuestions }, (_, i) => {
-        let resp: any = undefined;
-        if (matchedSurvey?.questions && matchedSurvey.questions[i]) {
-          const qId = matchedSurvey.questions[i].id;
-          resp = s.responses?.[qId];
-        }
-        if (!resp) {
-          resp = responsesList[i];
-        }
-        const text = (resp?.transcript || resp?.textResponse || "").replace(/"/g, '""');
-        return `"${text}"`;
-      });
-
-      const feedbackTags = (s.feedback?.tags || []).join("; ").replace(/"/g, '""');
-      const feedbackNotes = (s.feedback?.notes || "").replace(/"/g, '""');
-      const audienceSegment = (s.tracking?.audience || "").replace(/"/g, '""');
-
-      return [
-        `"${s.id}"`,
-        `"${s.projectId}"`,
-        `"${s.participant.fullName}"`,
-        `"${s.participant.email}"`,
-        `"${s.participant.company}"`,
-        `"${s.participant.title}"`,
-        `"${audienceSegment || "Genel"}"`,
-        `"${s.tracking?.uid || ""}"`,
-        `"${s.feedback?.rating && s.feedback.rating > 0 ? `${s.feedback.rating}.0` : "Seçim Yapılmadı"}"`,
-        `"${feedbackTags || "Seçilmedi"}"`,
-        `"${feedbackNotes || "İletilmedi"}"`,
-        `"${new Date(s.startedAt).toLocaleString("tr-TR")}"`,
-        ...questionCols,
-      ].join(",");
-    });
-
-    let fileName = "voice_verification";
-    if (matchedSingleSurvey) {
-      fileName += `_${matchedSingleSurvey.slug || matchedSingleSurvey.id}`;
-    } else {
-      fileName += "_all_surveys";
-    }
-    if (exportAudience !== "all") {
-      const cleanAud = exportAudience.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
-      fileName += `_${cleanAud}`;
-    }
-    fileName += `_${Date.now()}.csv`;
-
-    const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
