@@ -40,11 +40,8 @@ export async function POST(req: NextRequest) {
         );
       }
 
-      // A) Kod registry kontrolü
-      if (SURVEY_ACCESS_CODES[cleanPin]) {
-        surveyId = SURVEY_ACCESS_CODES[cleanPin].surveyId;
-      } else if (isSupabaseConfigured() && supabaseAdmin) {
-        // B) Supabase surveys tablosu kontrolü (Dinamik admin tarafından eklenen anketler)
+      // A) Supabase surveys tablosu kontrolü (Dinamik admin tarafından eklenen güncel anketler)
+      if (isSupabaseConfigured() && supabaseAdmin) {
         const { data: surveyRow, error: sErr } = await supabaseAdmin
           .from("surveys")
           .select("id, access_pin, is_active")
@@ -55,6 +52,11 @@ export async function POST(req: NextRequest) {
         if (!sErr && surveyRow) {
           surveyId = surveyRow.id;
         }
+      }
+
+      // B) Statik kod registry fallback kontrolü
+      if (!surveyId && SURVEY_ACCESS_CODES[cleanPin]) {
+        surveyId = SURVEY_ACCESS_CODES[cleanPin].surveyId;
       }
 
       if (!surveyId) {

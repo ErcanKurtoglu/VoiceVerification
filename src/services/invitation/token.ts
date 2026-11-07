@@ -12,15 +12,25 @@ export interface InvitePayload {
   audience?: string; // Hedef Kitle / Segment (örn: "Bakım Mühendisleri", "Satın Alma")
 }
 
+export function areSurveyIdsMatching(id1?: string, id2?: string): boolean {
+  if (!id1 || !id2) return false;
+  const p1 = id1.trim().toLowerCase();
+  const p2 = id2.trim().toLowerCase();
+  if (p1 === p2) return true;
+  const pirAliases = ["print-it-right", "print-it-right-food-safe-parts", "food-safe-parts"];
+  if (pirAliases.includes(p1) && pirAliases.includes(p2)) return true;
+  return false;
+}
+
 // Kolay erişim kampanya kodları (Landing page'de veya kısa linklerde girilebilecek kodlar)
 export const SURVEY_ACCESS_CODES: Record<string, { surveyId: string; expiresAt: number; title: string }> = {
   "PIR-2026": {
-    surveyId: "print-it-right",
+    surveyId: "print-it-right-food-safe-parts",
     expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 30, // 30 Gün
     title: "Print It Right Challenge",
   },
   "FOOD-SAFE": {
-    surveyId: "print-it-right",
+    surveyId: "print-it-right-food-safe-parts",
     expiresAt: Date.now() + 1000 * 60 * 60 * 24 * 30,
     title: "Food-Safe Parts On Demand",
   },
@@ -140,7 +150,7 @@ export function evaluateSurveyAccess(
     if (Date.now() > campaign.expiresAt) {
       return { isAllowed: false, reason: "expired" };
     }
-    if (campaign.surveyId !== surveyId) {
+    if (!areSurveyIdsMatching(campaign.surveyId, surveyId)) {
       return { isAllowed: false, reason: "invalid_code" };
     }
     return {
@@ -161,7 +171,7 @@ export function evaluateSurveyAccess(
     }
 
     const payload = tokenResult.payload!;
-    if (payload.surveyId !== surveyId) {
+    if (!areSurveyIdsMatching(payload.surveyId, surveyId)) {
       return { isAllowed: false, reason: "missing_access" };
     }
 

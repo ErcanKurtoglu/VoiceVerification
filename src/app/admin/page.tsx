@@ -66,6 +66,55 @@ const QUESTION_PLACEHOLDERS = [
   },
 ];
 
+export function isSurveyMatch(
+  sessionProjectId: string | undefined,
+  targetSurveyIdOrSlug: string | undefined
+): boolean {
+  if (!sessionProjectId || !targetSurveyIdOrSlug) return false;
+  if (targetSurveyIdOrSlug === "all") return true;
+
+  const p = sessionProjectId.trim().toLowerCase();
+  const t = targetSurveyIdOrSlug.trim().toLowerCase();
+  if (p === t) return true;
+
+  const pirAliases = ["print-it-right", "print-it-right-food-safe-parts", "food-safe-parts"];
+  if (pirAliases.includes(p) && pirAliases.includes(t)) {
+    return true;
+  }
+  return false;
+}
+
+export function getSurveyForSession(
+  projectId: string,
+  surveys: SurveyConfig[]
+): SurveyConfig {
+  const p = (projectId || "").trim().toLowerCase();
+  // 1. Doğrudan id veya slug eşleşmesi
+  const direct = surveys.find(
+    (sv) => sv.id?.toLowerCase() === p || sv.slug?.toLowerCase() === p
+  );
+  if (direct) return direct;
+
+  // 2. Print It Right takma adları
+  const pirAliases = ["print-it-right", "print-it-right-food-safe-parts", "food-safe-parts"];
+  if (pirAliases.includes(p)) {
+    const pirMatch = surveys.find(
+      (sv) =>
+        pirAliases.includes(sv.id?.toLowerCase()) ||
+        pirAliases.includes(sv.slug?.toLowerCase()) ||
+        sv.title?.toLowerCase().includes("print it right")
+    );
+    if (pirMatch) return pirMatch;
+    return PRINT_IT_RIGHT_SURVEY;
+  }
+
+  // 3. Başlık benzerliği veya varsayılan
+  const titleMatch = surveys.find((sv) => sv.title?.toLowerCase().includes(p));
+  if (titleMatch) return titleMatch;
+
+  return PRINT_IT_RIGHT_SURVEY;
+}
+
 function getQuestionPlaceholder(index: number) {
   if (index < QUESTION_PLACEHOLDERS.length) {
     return QUESTION_PLACEHOLDERS[index];
@@ -665,7 +714,7 @@ function AdminDashboardContent() {
 
   // Filtreleme
   const filteredSessions = sessions.filter((s) => {
-    const matchesSurvey = filterSurvey === "all" || s.projectId === filterSurvey;
+    const matchesSurvey = filterSurvey === "all" || isSurveyMatch(s.projectId, filterSurvey);
     const matchesQuery =
       s.participant.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.participant.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -707,13 +756,7 @@ function AdminDashboardContent() {
   const availableAudiencesForExport = useMemo(() => {
     const targetSessions = sessions.filter((s) => {
       if (exportSurveyId === "all") return true;
-      const matched = surveysList.find(
-        (sv: SurveyConfig) => sv.id === exportSurveyId || sv.slug === exportSurveyId
-      );
-      return (
-        s.projectId === exportSurveyId ||
-        (matched && (s.projectId === matched.id || s.projectId === matched.slug))
-      );
+      return isSurveyMatch(s.projectId, exportSurveyId);
     });
 
     const audSet = new Set<string>();
@@ -725,21 +768,13 @@ function AdminDashboardContent() {
     });
 
     return Array.from(audSet).sort();
-  }, [sessions, exportSurveyId, surveysList]);
+  }, [sessions, exportSurveyId]);
 
   // Seçilen anket ve kitle filtelerine göre dışa aktarılacak oturumlar
   const sessionsToExport = useMemo(() => {
     return sessions.filter((s) => {
       // 1. Anket Grubu Filtresi
-      if (exportSurveyId !== "all") {
-        const matched = surveysList.find(
-          (sv: SurveyConfig) => sv.id === exportSurveyId || sv.slug === exportSurveyId
-        );
-        const matchesId = s.projectId === exportSurveyId;
-        const matchesSlug =
-          matched && (s.projectId === matched.id || s.projectId === matched.slug);
-        if (!matchesId && !matchesSlug) return false;
-      }
+      if (!isSurveyMatch(s.projectId, exportSurveyId)) return false;
 
       // 2. Kitle / Segment Filtresi
       if (exportAudience !== "all") {
@@ -755,14 +790,12 @@ function AdminDashboardContent() {
 
       return true;
     });
-  }, [sessions, exportSurveyId, exportAudience, exportOnlyValid, surveysList]);
+  }, [sessions, exportSurveyId, exportAudience, exportOnlyValid]);
 
   // Canlı önizleme için soru sütunu sayısı
   const exportQuestionCount = useMemo(() => {
     if (exportSurveyId !== "all") {
-      const target = surveysList.find(
-        (sv: SurveyConfig) => sv.id === exportSurveyId || sv.slug === exportSurveyId
-      );
+      const target = getSurveyForSession(exportSurveyId, surveysList);
       if (target?.questions?.length) return target.questions.length;
     }
     let maxQ = 3;
@@ -779,10 +812,7 @@ function AdminDashboardContent() {
 
     const matchedSingleSurvey =
       exportSurveyId !== "all"
-        ? surveysList.find(
-            (sv: SurveyConfig) =>
-              sv.id === exportSurveyId || sv.slug === exportSurveyId
-          )
+        ? getSurveyForSession(exportSurveyId, surveysList)
         : null;
 
     let maxQuestions = matchedSingleSurvey?.questions?.length || 3;
@@ -817,10 +847,7 @@ function AdminDashboardContent() {
 
     const rows = sessionsToExport.map((s) => {
       const matchedSurvey =
-        matchedSingleSurvey ||
-        surveysList.find(
-          (sv: SurveyConfig) => sv.id === s.projectId || sv.slug === s.projectId
-        );
+        matchedSingleSurvey || getSurveyForSession(s.projectId, surveysList);
       const responsesList = Object.values(s.responses || {});
 
       const questionCols = Array.from({ length: maxQuestions }, (_, i) => {
@@ -1373,7 +1400,7 @@ function AdminDashboardContent() {
                   {filteredSessions.map((s) => {
                     const isExpanded = expandedSessionId === s.id;
                     const hasJunk = Object.values(s.responses).some((r) => r.isJunk);
-                    const currentSurvey = surveysList.find((sv) => sv.id === s.projectId) || surveysList[0];
+                    const currentSurvey = getSurveyForSession(s.projectId, surveysList);
 
                     return (
                       <div
@@ -1548,102 +1575,118 @@ function AdminDashboardContent() {
                             </div>
 
                             <div className="space-y-4">
-                              {Object.entries(s.responses)
-                                .sort(([qIdA], [qIdB]) => {
-                                  const qA =
-                                    currentSurvey?.questions?.find((q) => q.id === qIdA) ||
-                                    PRINT_IT_RIGHT_SURVEY.questions.find((q) => q.id === qIdA);
-                                  const qB =
-                                    currentSurvey?.questions?.find((q) => q.id === qIdB) ||
-                                    PRINT_IT_RIGHT_SURVEY.questions.find((q) => q.id === qIdB);
+                              {(() => {
+                                const surveyQuestions =
+                                  currentSurvey?.questions && currentSurvey.questions.length > 0
+                                    ? currentSurvey.questions
+                                    : PRINT_IT_RIGHT_SURVEY.questions;
+                                const handledQIds = new Set<string>();
 
-                                  if (qA?.order !== undefined && qB?.order !== undefined) {
-                                    return qA.order - qB.order;
+                                // 1. Soruların ankete eklendiği / tasarlandığı sıra ile listelenmesi
+                                const orderedItems = surveyQuestions.map((q, idx) => {
+                                  handledQIds.add(q.id);
+                                  const resp = s.responses[q.id];
+                                  return {
+                                    qId: q.id,
+                                    resp,
+                                    questionMeta: q,
+                                    displayNumber: q.order ?? idx + 1,
+                                  };
+                                });
+
+                                // 2. Ankette tanımlı olmayan ek/eski yanıtlar varsa listenin sonuna ekle
+                                Object.entries(s.responses).forEach(([qId, resp]) => {
+                                  if (!handledQIds.has(qId)) {
+                                    orderedItems.push({
+                                      qId,
+                                      resp,
+                                      questionMeta: {
+                                        id: qId,
+                                        order: orderedItems.length + 1,
+                                        title: `Ek Soru`,
+                                        description: "",
+                                        clarificationHint: "",
+                                        maxDurationSec: 120,
+                                      },
+                                      displayNumber: orderedItems.length + 1,
+                                    });
                                   }
-                                  if (qA?.order !== undefined) return -1;
-                                  if (qB?.order !== undefined) return 1;
+                                });
 
-                                  const numA = parseInt(qIdA.replace(/\D/g, "") || "999", 10);
-                                  const numB = parseInt(qIdB.replace(/\D/g, "") || "999", 10);
-                                  return numA - numB;
-                                })
-                                .map(([qId, resp], idx) => {
-                                const questionMeta =
-                                  currentSurvey?.questions?.find((q) => q.id === qId) ||
-                                  PRINT_IT_RIGHT_SURVEY.questions.find((q) => q.id === qId);
+                                return orderedItems.map(({ qId, resp, questionMeta, displayNumber }) => {
+                                  const questionNumber = displayNumber;
+                                  const questionTitle = questionMeta?.title || `Soru #${questionNumber}`;
+                                  const questionDesc = questionMeta?.description;
+                                  const isAudio = resp?.mode === "audio" || Boolean(resp?.audioUrl);
+                                  const transcriptText = resp?.transcript || resp?.textResponse || "";
 
-                                const questionNumber = questionMeta?.order ?? idx + 1;
-                                const questionTitle = questionMeta?.title || `Soru #${questionNumber}`;
-                                const questionDesc = questionMeta?.description;
-                                const isAudio = resp.mode === "audio" || Boolean(resp.audioUrl);
-                                const transcriptText = resp.transcript || resp.textResponse || "";
-
-                                return (
-                                  <div
-                                    key={qId}
-                                    className="p-4 rounded-2xl bg-slate-950 border border-slate-800 shadow-sm space-y-3"
-                                  >
-                                    {/* Soru Başlık Satırı */}
-                                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 pb-2.5 border-b border-slate-900">
-                                      <div className="space-y-1">
-                                        <div className="flex items-center gap-2">
-                                          <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 font-mono text-[10px] font-bold">
-                                            SORU #{questionNumber}
-                                          </span>
-                                          <h6 className="text-xs md:text-sm font-semibold text-white">
-                                            {questionTitle}
-                                          </h6>
+                                  return (
+                                    <div
+                                      key={qId}
+                                      className="p-4 rounded-2xl bg-slate-950 border border-slate-800 shadow-sm space-y-3"
+                                    >
+                                      {/* Soru Başlık Satırı */}
+                                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 pb-2.5 border-b border-slate-900">
+                                        <div className="space-y-1">
+                                          <div className="flex items-center gap-2">
+                                            <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 font-mono text-[10px] font-bold">
+                                              SORU #{questionNumber}
+                                            </span>
+                                            <h6 className="text-xs md:text-sm font-semibold text-white">
+                                              {questionTitle}
+                                            </h6>
+                                          </div>
+                                          {questionDesc && (
+                                            <p className="text-[11px] text-slate-400 leading-relaxed">
+                                              {questionDesc}
+                                            </p>
+                                          )}
                                         </div>
-                                        {questionDesc && (
-                                          <p className="text-[11px] text-slate-400 leading-relaxed">
-                                            {questionDesc}
+
+                                        <div className="flex items-center gap-2 shrink-0">
+                                          {isAudio ? (
+                                            <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-medium flex items-center gap-1.5 font-mono">
+                                              <Mic className="w-3.5 h-3.5" />
+                                              <span>Sesli Yanıt {resp?.durationSec ? `(${Math.round(resp.durationSec)} sn)` : ""}</span>
+                                            </span>
+                                          ) : (
+                                            <span className="px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-medium flex items-center gap-1.5 font-mono">
+                                              <FileText className="w-3.5 h-3.5" />
+                                              <span>Yazılı Yanıt</span>
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* DEŞİFRE / CEVAP KISMI */}
+                                      <div className="p-3.5 rounded-xl bg-slate-900/90 border border-indigo-500/30 space-y-2">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider flex items-center gap-1.5">
+                                            <span>💬 Katılımcının Yanıtı {isAudio ? "(Deşifre Sonucu)" : "(Yazılı Cevap)"}:</span>
+                                          </span>
+                                          {isAudio && (
+                                            <span className="text-[9px] px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono">
+                                              Yapay Zeka (AI) Transkripti
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        {transcriptText ? (
+                                          <p className="text-xs md:text-sm text-slate-100 font-medium leading-relaxed whitespace-pre-wrap pl-3 border-l-2 border-indigo-500">
+                                            &ldquo;{transcriptText}&rdquo;
+                                          </p>
+                                        ) : (
+                                          <p className="text-xs text-slate-500 italic pl-3 border-l-2 border-slate-700">
+                                            {resp?.audioUrl
+                                              ? "Ses kaydı mevcut, deşifre işleniyor..."
+                                              : "Katılımcı bu soruyu yanıtlamadı."}
                                           </p>
                                         )}
                                       </div>
-
-                                      <div className="flex items-center gap-2 shrink-0">
-                                        {isAudio ? (
-                                          <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-medium flex items-center gap-1.5 font-mono">
-                                            <Mic className="w-3.5 h-3.5" />
-                                            <span>Sesli Yanıt {resp.durationSec ? `(${Math.round(resp.durationSec)} sn)` : ""}</span>
-                                          </span>
-                                        ) : (
-                                          <span className="px-2.5 py-1 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-medium flex items-center gap-1.5 font-mono">
-                                            <FileText className="w-3.5 h-3.5" />
-                                            <span>Yazılı Yanıt</span>
-                                          </span>
-                                        )}
-                                      </div>
                                     </div>
-
-                                    {/* DEŞİFRE / CEVAP KISMI (Sesler sadece veritabanında arşivlenir, panelde doğrudan temiz deşifre sunulur) */}
-                                    <div className="p-3.5 rounded-xl bg-slate-900/90 border border-indigo-500/30 space-y-2">
-                                      <div className="flex items-center justify-between">
-                                        <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider flex items-center gap-1.5">
-                                          <span>💬 Katılımcının Yanıtı {isAudio ? "(Deşifre Sonucu)" : "(Yazılı Cevap)"}:</span>
-                                        </span>
-                                        {isAudio && (
-                                          <span className="text-[9px] px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 font-mono">
-                                            Yapay Zeka (AI) Transkripti
-                                          </span>
-                                        )}
-                                      </div>
-
-                                      {transcriptText ? (
-                                        <p className="text-xs md:text-sm text-slate-100 font-medium leading-relaxed whitespace-pre-wrap pl-3 border-l-2 border-indigo-500">
-                                          &ldquo;{transcriptText}&rdquo;
-                                        </p>
-                                      ) : (
-                                        <p className="text-xs text-slate-500 italic pl-3 border-l-2 border-slate-700">
-                                          {resp.audioUrl
-                                            ? "Ses kaydı mevcut, deşifre işleniyor..."
-                                            : "Katılımcı boş yanıt iletti."}
-                                        </p>
-                                      )}
-                                    </div>
-                                  </div>
-                                );
-                              })}
+                                  );
+                                });
+                              })()}
                             </div>
                           </div>
                         )}
@@ -1681,8 +1724,8 @@ function AdminDashboardContent() {
             {/* Anket Kartları Listesi */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {surveysList.map((sv) => {
-                const rawMatch = rawSurveysData.find((r) => r.id === sv.id);
-                const pin = rawMatch?.access_pin || (sv.id === "print-it-right" ? "PIR-2026" : "KOD-YOK");
+                const rawMatch = rawSurveysData.find((r) => r.id === sv.id || r.slug === sv.id);
+                const pin = rawMatch?.access_pin || (isSurveyMatch(sv.id, "print-it-right") ? "PIR-2026" : "KOD-YOK");
 
                 return (
                   <div
@@ -2462,8 +2505,8 @@ function AdminDashboardContent() {
                       Tüm Anketler (Genel Havuz - {sessions.length} toplam kayıt)
                     </option>
                     {surveysList.map((sv) => {
-                      const count = sessions.filter(
-                        (s) => s.projectId === sv.id || s.projectId === sv.slug
+                      const count = sessions.filter((s) =>
+                        isSurveyMatch(s.projectId, sv.id)
                       ).length;
                       return (
                         <option key={sv.id} value={sv.id}>
@@ -2487,15 +2530,7 @@ function AdminDashboardContent() {
                     <option value="all">Tüm Kitleler / Segmentler (Tümü)</option>
                     {availableAudiencesForExport.map((aud) => {
                       const count = sessions.filter((s) => {
-                        const matched = surveysList.find(
-                          (sv: SurveyConfig) =>
-                            sv.id === exportSurveyId || sv.slug === exportSurveyId
-                        );
-                        const matchSurvey =
-                          exportSurveyId === "all" ||
-                          s.projectId === exportSurveyId ||
-                          (matched &&
-                            (s.projectId === matched.id || s.projectId === matched.slug));
+                        const matchSurvey = isSurveyMatch(s.projectId, exportSurveyId);
                         return matchSurvey && s.tracking?.audience?.trim() === aud;
                       }).length;
                       return (
