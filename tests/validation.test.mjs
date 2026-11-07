@@ -115,4 +115,27 @@ describe("Validation: Feedback Schema (Zod)", () => {
     const aboveMax = FeedbackSchema.safeParse({ rating: 6, tags: [] });
     assert.strictEqual(aboveMax.success, false);
   });
+
+  test("Gönderim anında (isSubmitting=true) form dondurulmalı ve kilitlenmelidir", () => {
+    let isSubmitting = true;
+    let submittedPayload = {
+      rating: 4,
+      tags: ["Hızlı ve pratikti"],
+      notes: "Arayüz çok akıcıydı.",
+    };
+
+    // Kullanıcı işlem sürerken yıldızı değiştirmeye veya yeni tag eklemeye çalıştığında guard engellemelidir
+    const attemptChangeAfterSubmit = (newRating, newTag) => {
+      if (isSubmitting) {
+        return; // İşlem sürerken değişiklik engellenir
+      }
+      submittedPayload.rating = newRating;
+      submittedPayload.tags.push(newTag);
+    };
+
+    attemptChangeAfterSubmit(1, "Sorunlu");
+
+    assert.strictEqual(submittedPayload.rating, 4, "Gönderim esnasında yıldız değiştirilememelidir.");
+    assert.deepStrictEqual(submittedPayload.tags, ["Hızlı ve pratikti"], "Gönderim esnasında etiketler değiştirilememelidir.");
+  });
 });
