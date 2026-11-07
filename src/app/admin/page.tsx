@@ -33,10 +33,46 @@ import {
   Mic,
   FileText,
   LogOut,
+  PauseCircle,
+  PlayCircle,
 } from "lucide-react";
 import { InterviewSession, SurveyConfig, Question } from "@/types/interview";
 import { getAllSurveys, PRINT_IT_RIGHT_SURVEY } from "@/surveys";
 import { validateSurveyQuestion } from "@/features/anti-garbage/survey-validator";
+
+const QUESTION_PLACEHOLDERS = [
+  {
+    title: "Örn: 1. Parça Tedarik Süresi & Plansız Duruş Kaybı",
+    description: "Örn: Geçtiğimiz 1 yılda tek bir yedek parça gecikmesi yüzünden dolum veya üretim hattınızın durduğu en kritik anı ve o günkü teslim süresini anlatabilir misiniz?",
+    hint: "Örn: Katılımcı termin süresini veya duruş maliyetini paylaşırsa OEM garanti süreçlerini sorması için ipucu",
+  },
+  {
+    title: "Örn: 2. 3B Baskıda Gıda Güvenliği & Hijyen Çekincaleri",
+    description: "Örn: Gıdayla temas eden bir parçayı 3B yazıcıyla üretip hatta takacak olsaydınız, sizi gece uykusuz bırakacak en büyük teknik veya denetim riski ne olurdu?",
+    hint: "Örn: FDA onayı, migrasyon testleri ve izlenebilirlik konularında derinleştirmesi için yönlendirme",
+  },
+  {
+    title: "Örn: 3. AI Destekli Tasarım & Satın Alma Modeli",
+    description: "Örn: Kırılan parçanın 48 saatte teslim edildiği bir modelde; doğrudan 'parça başı fatura' mı yoksa 'yıllık hat garantisi aboneliği' mi fabrikanızın prosedüründen daha kolay geçer?",
+    hint: "Örn: Bütçeleme, OPEX/CAPEX onayı ve satın alma onay hiyerarşisi hakkında bilgi al",
+  },
+  {
+    title: "Örn: 4. Çözüm Beklentisi & Karar Verici Dinamikleri",
+    description: "Örn: Bu problemi çözmek için alternatif bir tedarikçi veya yeni teknoloji arayışında karar sürecinde kimler rol oynuyor?",
+    hint: "Örn: Fabrika müdürü, satın alma ve kalite ekiplerinin ortak karar sürecini irdele",
+  },
+];
+
+function getQuestionPlaceholder(index: number) {
+  if (index < QUESTION_PLACEHOLDERS.length) {
+    return QUESTION_PLACEHOLDERS[index];
+  }
+  return {
+    title: `Örn: ${index + 1}. Ek Problem / Doğrulama Başlığı`,
+    description: `Örn: Katılımcının bu konuyla ilgili saha tecrübesini ve karşılaştığı darboğazları detaylandırınız...`,
+    hint: `Örn: AI asistanının derinleştirmesini istediğiniz teknik parametreler veya arka plan...`,
+  };
+}
 
 function AdminDashboardContent() {
   const searchParams = useSearchParams();
@@ -57,9 +93,11 @@ function AdminDashboardContent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSurvey, setFilterSurvey] = useState("all");
 
-  // Süreli Davetiye Linki Üretici State
+  // Süreli Davetiye & Kitle Linki Üretici State
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
+  const [inviteType, setInviteType] = useState<"named" | "audience_campaign">("named");
   const [inviteSurveyId, setInviteSurveyId] = useState("print-it-right");
+  const [inviteAudience, setInviteAudience] = useState("");
   const [inviteName, setInviteName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteCompany, setInviteCompany] = useState("");
@@ -69,6 +107,7 @@ function AdminDashboardContent() {
   const [generatedUrl, setGeneratedUrl] = useState("");
   const [copySuccess, setCopySuccess] = useState(false);
   const [generatorError, setGeneratorError] = useState("");
+  const [togglingSurveyId, setTogglingSurveyId] = useState<string | null>(null);
 
   // Yeni Anket Oluşturma State
   const [isNewSurveyModalOpen, setIsNewSurveyModalOpen] = useState(false);
@@ -167,13 +206,74 @@ function AdminDashboardContent() {
     }
   }, [isAuthorized]);
 
-  // Süreli Davetiye Linki Üretme
+  // Anket Aktif / Pasif Durumunu Değiştirme
+  const handleToggleSurveyActive = async (surveyId: string, currentActive: boolean) => {
+    setTogglingSurveyId(surveyId);
+    try {
+      const res = await fetch("/api/surveys", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: surveyId,
+          isActive: !currentActive,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Anket durumu güncellenemedi.");
+      }
+
+      await fetchSurveys();
+    } catch (err: unknown) {
+      const error = err as Error;
+      alert(`Anket durumu güncellenemedi: ${error.message}`);
+    } finally {
+      setTogglingSurveyId(null);
+    }
+  };
+
+  // Süreli Davetiye & Hedef Kitle Linki Üretme
   const handleGenerateInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     setGeneratorError("");
     setGeneratedUrl("");
     setCopySuccess(false);
 
+    // Kitleye / Sektöre Özel Paylaşım Linki Modu
+    if (inviteType === "audience_campaign") {
+      if (!inviteAudience.trim()) {
+        setGeneratorError("Lütfen bu bağlantı için bir hedef kitle / sektör grubu belirleyiniz (Örn: Bakım Mühendisleri).");
+        return;
+      }
+
+      setIsGenerating(true);
+      try {
+        const origin = window.location.origin;
+        const cleanAudience = inviteAudience.trim();
+        const audSlug = cleanAudience
+          .toLowerCase()
+          .replace(/ğ/g, "g")
+          .replace(/ü/g, "u")
+          .replace(/ş/g, "s")
+          .replace(/ı/g, "i")
+          .replace(/ö/g, "o")
+          .replace(/ç/g, "c")
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-|-$/g, "");
+
+        const campaignUrl = `${origin}/s/${inviteSurveyId}?audience=${encodeURIComponent(cleanAudience)}&ref=camp_${audSlug || "general"}`;
+        setGeneratedUrl(campaignUrl);
+      } catch (err: unknown) {
+        const error = err as Error;
+        setGeneratorError(error.message);
+      } finally {
+        setIsGenerating(false);
+      }
+      return;
+    }
+
+    // Kişiye Özel Davet Modu
     if (!inviteName.trim() || !inviteEmail.trim() || !inviteCompany.trim() || !inviteTitle.trim()) {
       setGeneratorError("Lütfen katılımcının ad, e-posta, firma ve unvan bilgilerini giriniz.");
       return;
@@ -191,6 +291,7 @@ function AdminDashboardContent() {
           email: inviteEmail.trim(),
           company: inviteCompany.trim(),
           title: inviteTitle.trim(),
+          targetAudience: inviteAudience.trim() || undefined,
           validDays: Number(inviteDays) || 7,
           mode: "admin",
         }),
@@ -412,6 +513,7 @@ function AdminDashboardContent() {
       "E-posta",
       "Şirket",
       "Unvan",
+      "Hedef Kitle / Segment",
       "UID",
       "Deneyim Puanı",
       "Beğenilen Özellikler (Etiketler)",
@@ -429,6 +531,7 @@ function AdminDashboardContent() {
       const q3 = (responsesList[2]?.transcript || responsesList[2]?.textResponse || "").replace(/"/g, '""');
       const feedbackTags = (s.feedback?.tags || []).join("; ").replace(/"/g, '""');
       const feedbackNotes = (s.feedback?.notes || "").replace(/"/g, '""');
+      const audienceSegment = (s.tracking?.audience || "").replace(/"/g, '""');
 
       return [
         `"${s.id}"`,
@@ -437,6 +540,7 @@ function AdminDashboardContent() {
         `"${s.participant.email}"`,
         `"${s.participant.company}"`,
         `"${s.participant.title}"`,
+        `"${audienceSegment || "Genel"}"`,
         `"${s.tracking?.uid || ""}"`,
         `"${s.feedback?.rating && s.feedback.rating > 0 ? `${s.feedback.rating}.0` : "Seçim Yapılmadı"}"`,
         `"${feedbackTags || "Seçilmedi"}"`,
@@ -589,7 +693,7 @@ function AdminDashboardContent() {
           </div>
         </div>
 
-        {/* Süreli Özel Davetiye Linki Üretici Kartı (Açılır/Kapanır) */}
+        {/* Süreli Özel Davetiye & Kitle Linki Üretici Kartı (Açılır/Kapanır) */}
         {isGeneratorOpen && (
           <div className="p-6 rounded-3xl bg-slate-900/95 border border-indigo-500/30 shadow-2xl backdrop-blur-xl animate-fadeIn space-y-4">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
@@ -599,14 +703,48 @@ function AdminDashboardContent() {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold text-white">
-                    Kişiye Özel Süreli Davetiye Bağlantısı Üret
+                    Anket Erişim & Davet Bağlantısı Üretici
                   </h3>
                   <p className="text-[11px] text-slate-400">
-                    Katılımcı bu linki açtığında tüm bilgileri tanımlı gelir; sadece gizlilik onayı vererek 3 saniyede başlar.
+                    Aynı anketi farklı sektör çalışanlarına veya kişiye özel olarak hedef kitle etiketiyle paylaşabilirsiniz.
                   </p>
                 </div>
               </div>
-              <span className="text-[11px] text-indigo-400 font-mono">TTL Korumalı</span>
+              <span className="text-[11px] text-indigo-400 font-mono">Segment & TTL Korumalı</span>
+            </div>
+
+            {/* Link Tipi Seçici */}
+            <div className="flex items-center gap-2 p-1 rounded-xl bg-slate-950 border border-slate-800 w-fit">
+              <button
+                type="button"
+                onClick={() => {
+                  setInviteType("named");
+                  setGeneratedUrl("");
+                  setGeneratorError("");
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  inviteType === "named"
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Kişiye Özel Davet Linki
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setInviteType("audience_campaign");
+                  setGeneratedUrl("");
+                  setGeneratorError("");
+                }}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  inviteType === "audience_campaign"
+                    ? "bg-indigo-600 text-white shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Hedef Kitleye / Sektöre Özel Paylaşım Linki
+              </button>
             </div>
 
             {generatorError && (
@@ -617,7 +755,8 @@ function AdminDashboardContent() {
             )}
 
             <form onSubmit={handleGenerateInvite} className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {/* Ortak Alanlar: Anket Seçimi ve Hedef Kitle */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[11px] font-medium text-slate-400 mb-1">
                     Anket Seçimi
@@ -629,7 +768,7 @@ function AdminDashboardContent() {
                   >
                     {surveysList.map((sv) => (
                       <option key={sv.id} value={sv.id}>
-                        {sv.title}
+                        {sv.title} {sv.isActive === false ? "(Pasif)" : ""}
                       </option>
                     ))}
                   </select>
@@ -637,92 +776,142 @@ function AdminDashboardContent() {
 
                 <div>
                   <label className="block text-[11px] font-medium text-slate-400 mb-1">
-                    Ad Soyad <span className="text-red-400">*</span>
+                    Hedef Kitle / Segment (Rol / Departman) {inviteType === "audience_campaign" && <span className="text-red-400">*</span>}
                   </label>
                   <input
                     type="text"
-                    value={inviteName}
-                    onChange={(e) => setInviteName(e.target.value)}
-                    placeholder="Örn: Burak Kaya"
+                    value={inviteAudience}
+                    onChange={(e) => setInviteAudience(e.target.value)}
+                    placeholder="Örn: Bakım Mühendisleri veya Satın Alma"
                     className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
                   />
+                  {/* Hızlı Öneri Etiketleri */}
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                    <span className="text-[10px] text-slate-500">Örnekler:</span>
+                    {["Bakım Mühendisleri", "Kalite & Hijyen Şefleri", "Fabrika Müdürleri", "Satın Alma Departmanı"].map(
+                      (tag) => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => setInviteAudience(tag)}
+                          className="text-[10px] px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-indigo-300 border border-slate-700 transition-colors"
+                        >
+                          +{tag}
+                        </button>
+                      )
+                    )}
+                  </div>
                 </div>
+              </div>
 
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-400 mb-1">
-                    E-posta <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    placeholder="burak@sutaskurumsal.com"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
+              {/* Kişiye Özel Mod Form Alanları */}
+              {inviteType === "named" ? (
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 pt-1 border-t border-slate-800/80">
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-400 mb-1">
+                        Ad Soyad <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={inviteName}
+                        onChange={(e) => setInviteName(e.target.value)}
+                        placeholder="Örn: Burak Kaya"
+                        className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-400 mb-1">
-                    Firma / Kurum <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={inviteCompany}
-                    onChange={(e) => setInviteCompany(e.target.value)}
-                    placeholder="Örn: Sütaş A.Ş."
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-400 mb-1">
+                        E-posta <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        value={inviteEmail}
+                        onChange={(e) => setInviteEmail(e.target.value)}
+                        placeholder="burak@sutaskurumsal.com"
+                        className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-400 mb-1">
-                    Unvan / Rol <span className="text-red-400">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={inviteTitle}
-                    onChange={(e) => setInviteTitle(e.target.value)}
-                    placeholder="Örn: Bakım Mühendisi"
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-400 mb-1">
+                        Firma / Kurum <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={inviteCompany}
+                        onChange={(e) => setInviteCompany(e.target.value)}
+                        placeholder="Örn: Sütaş A.Ş."
+                        className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
 
-                <div>
-                  <label className="block text-[11px] font-medium text-slate-400 mb-1">
-                    Geçerlilik Süresi
-                  </label>
-                  <select
-                    value={inviteDays}
-                    onChange={(e) => setInviteDays(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    <div>
+                      <label className="block text-[11px] font-medium text-slate-400 mb-1">
+                        Unvan / Rol <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={inviteTitle}
+                        onChange={(e) => setInviteTitle(e.target.value)}
+                        placeholder="Örn: Bakım Mühendisi"
+                        className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2">
+                    <div className="w-48">
+                      <label className="block text-[10px] font-medium text-slate-400 mb-1">
+                        Geçerlilik Süresi
+                      </label>
+                      <select
+                        value={inviteDays}
+                        onChange={(e) => setInviteDays(e.target.value)}
+                        className="w-full px-3 py-1.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                      >
+                        <option value="3">3 Gün</option>
+                        <option value="7">7 Gün (Önerilen)</option>
+                        <option value="14">14 Gün</option>
+                        <option value="30">30 Gün</option>
+                      </select>
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={isGenerating}
+                      className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-semibold shadow-md flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
+                    >
+                      {isGenerating ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Üretiliyor...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Özel Davet Linki Üret</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-indigo-500/5 border border-indigo-500/20 flex flex-col sm:flex-row items-center justify-between gap-3">
+                  <p className="text-xs text-slate-300 leading-relaxed">
+                    Bu bağlantıyı toplu olarak (LinkedIn, WhatsApp grubu, e-bülten) hedeflediğiniz meslek grubuna iletebilirsiniz. Katılımcı linke tıkladığında adını kendisi girer, ankette hedef kitlesi hazır gelir ve panelde bu segment altında raporlanır.
+                  </p>
+                  <button
+                    type="submit"
+                    disabled={isGenerating}
+                    className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
                   >
-                    <option value="3">3 Gün</option>
-                    <option value="7">7 Gün (Önerilen)</option>
-                    <option value="14">14 Gün</option>
-                    <option value="30">30 Gün</option>
-                  </select>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Kitle Linki Oluştur</span>
+                  </button>
                 </div>
-              </div>
-
-              <div className="flex items-center justify-end pt-2">
-                <button
-                  type="submit"
-                  disabled={isGenerating}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-semibold shadow-md flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      <span>Üretiliyor...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Send className="w-3.5 h-3.5" />
-                      <span>Davetiye Linki Oluştur</span>
-                    </>
-                  )}
-                </button>
-              </div>
+              )}
             </form>
 
             {/* Üretilen Bağlantı Alanı */}
@@ -731,7 +920,11 @@ function AdminDashboardContent() {
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-emerald-400 font-medium flex items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Özel Davet Linki Hazır ({inviteDays} Gün Geçerli)</span>
+                    <span>
+                      {inviteType === "audience_campaign"
+                        ? `Hedef Kitle Bağlantısı Hazır (${inviteAudience || "Genel"})`
+                        : `Kişiye Özel Davet Linki Hazır (${inviteDays} Gün Geçerli)`}
+                    </span>
                   </span>
                   <span className="text-[10px] text-slate-400">Tek tıkla kopyalayabilirsiniz</span>
                 </div>
@@ -882,6 +1075,11 @@ function AdminDashboardContent() {
                                   {currentSurvey?.title?.split(":")[0] || s.projectId}
                                 </span>
 
+                                {s.tracking?.audience && (
+                                  <span className="px-2 py-0.5 rounded-md bg-purple-500/10 border border-purple-500/20 text-purple-300 text-[10px] font-medium flex items-center gap-1">
+                                    <Users className="w-2.5 h-2.5" /> Hedef Kitle: {s.tracking.audience}
+                                  </span>
+                                )}
                                 {s.tracking?.uid && (
                                   <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-mono flex items-center gap-1">
                                     <Tag className="w-2.5 h-2.5" /> {s.tracking.uid}
@@ -1174,12 +1372,40 @@ function AdminDashboardContent() {
 
                     <div className="pt-3 border-t border-slate-800 flex items-center justify-between flex-wrap gap-2 text-xs">
                       <div className="flex items-center gap-1.5">
-                        <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-medium">
-                          <CheckCircle2 className="w-3.5 h-3.5" /> Aktif
-                        </span>
+                        {sv.isActive !== false ? (
+                          <span className="text-[11px] text-emerald-400 flex items-center gap-1 font-semibold">
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Aktif (Canlı)
+                          </span>
+                        ) : (
+                          <span className="text-[11px] text-amber-400 flex items-center gap-1 font-semibold">
+                            <PauseCircle className="w-3.5 h-3.5" /> Pasif (Kapalı)
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2">
+                        {/* Aktif / Pasif Toggle Butonu */}
+                        <button
+                          type="button"
+                          disabled={togglingSurveyId === sv.id}
+                          onClick={() => handleToggleSurveyActive(sv.id, sv.isActive !== false)}
+                          className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-all flex items-center gap-1 border active:scale-95 disabled:opacity-50 ${
+                            sv.isActive !== false
+                              ? "bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border-amber-500/30"
+                              : "bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                          }`}
+                          title={sv.isActive !== false ? "Bu anketi yanıtlara kapat" : "Bu anketi yeniden yanıtlara aç"}
+                        >
+                          {togglingSurveyId === sv.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin" />
+                          ) : sv.isActive !== false ? (
+                            <PauseCircle className="w-3 h-3" />
+                          ) : (
+                            <PlayCircle className="w-3 h-3" />
+                          )}
+                          <span>{sv.isActive !== false ? "Pasife Al" : "Aktifleştir"}</span>
+                        </button>
+
                         <button
                           onClick={() => handleOpenPinModal(sv.id, sv.title, pin)}
                           className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-medium transition-all flex items-center gap-1 border border-slate-700 active:scale-95"
@@ -1389,6 +1615,7 @@ function AdminDashboardContent() {
                     {newSurveyQuestions.map((q, idx) => {
                       const qStatus = validateSurveyQuestion(q);
                       const isReady = qStatus.isValid;
+                      const ph = getQuestionPlaceholder(idx);
 
                       return (
                         <div
@@ -1439,8 +1666,8 @@ function AdminDashboardContent() {
                                 updated[idx].title = e.target.value;
                                 setNewSurveyQuestions(updated);
                               }}
-                              placeholder="Örn: Parça Tedarik Süresi & Plansız Duruş Kaybı"
-                              className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                              placeholder={ph.title}
+                              className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500 placeholder:text-slate-500"
                             />
                           </div>
 
@@ -1456,8 +1683,8 @@ function AdminDashboardContent() {
                                 updated[idx].description = e.target.value;
                                 setNewSurveyQuestions(updated);
                               }}
-                              placeholder="Örn: Geçtiğimiz 1 yılda tek bir yedek parça gecikmesi yüzünden dolum veya üretim hattınızın durduğu en kritik anı ve o günkü OEM teslim süresini anlatabilir misiniz?"
-                              className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                              placeholder={ph.description}
+                              className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500 placeholder:text-slate-500"
                             />
                           </div>
 
@@ -1473,8 +1700,8 @@ function AdminDashboardContent() {
                                 updated[idx].clarificationHint = e.target.value;
                                 setNewSurveyQuestions(updated);
                               }}
-                              placeholder="Örn: Katılımcı soruyla ilgili detay isterse yedek parça temin süresi ve OEM garantisini düşünebileceğini belirt."
-                              className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-300 focus:outline-none focus:border-indigo-500"
+                              placeholder={ph.hint}
+                              className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-300 focus:outline-none focus:border-indigo-500 placeholder:text-slate-500"
                             />
                           </div>
                         </div>

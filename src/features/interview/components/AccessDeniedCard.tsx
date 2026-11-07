@@ -15,12 +15,13 @@ import {
   AlertCircle,
   Loader2,
   CheckCircle2,
+  PauseCircle,
 } from "lucide-react";
 import { getSurveyById } from "@/surveys";
 import { ConsentModal } from "./ConsentModal";
 
 interface AccessDeniedCardProps {
-  reason: "missing_access" | "expired" | "invalid_code";
+  reason: "missing_access" | "expired" | "invalid_code" | "survey_inactive";
   surveyId: string;
 }
 
@@ -29,6 +30,39 @@ export const AccessDeniedCard: React.FC<AccessDeniedCardProps> = ({
   surveyId,
 }) => {
   const survey = getSurveyById(surveyId);
+
+  // Anket pasife alınmışsa form gösterme, doğrudan net uyarı sun
+  if (reason === "survey_inactive") {
+    return (
+      <div className="w-full max-w-lg mx-auto p-8 rounded-3xl bg-slate-900/95 border border-amber-500/30 shadow-2xl backdrop-blur-xl animate-fadeIn text-center">
+        <div className="w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-5 bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-inner">
+          <PauseCircle className="w-8 h-8" />
+        </div>
+
+        <span className="px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-[11px] font-medium font-mono uppercase">
+          Anket Pasif Durumda
+        </span>
+
+        <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight mt-3 mb-2">
+          {survey.title}
+        </h2>
+
+        <p className="text-xs text-slate-300 max-w-md mx-auto leading-relaxed mb-6">
+          Bu araştırma anketinin veri toplama ve görüşme süreci yönetici tarafından geçici olarak durdurulmuştur veya tamamlanmıştır. Şu anda yeni bir yanıt kabul edilmemektedir.
+        </p>
+
+        <div className="flex items-center justify-center gap-3">
+          <Link
+            href="/"
+            className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-2 transition-all"
+          >
+            <Home className="w-4 h-4" />
+            <span>Ana Sayfaya Dön</span>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   const [code, setCode] = useState("");
   const [fullName, setFullName] = useState("");

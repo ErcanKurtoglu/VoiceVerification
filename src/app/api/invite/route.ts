@@ -12,6 +12,7 @@ export async function POST(req: NextRequest) {
       email,
       company,
       title,
+      targetAudience,
       validDays = 7,
       accessPin,
       mode = "participant", // "admin" | "participant"
@@ -102,6 +103,7 @@ export async function POST(req: NextRequest) {
 
     // 3. Aktif davetiye yoksa yeni bir süre kısıtlı token üret
     const uid = generateShortId("usr");
+    const cleanAudience = (targetAudience || "").trim();
     const token = generateInviteToken(
       surveyId,
       {
@@ -110,8 +112,13 @@ export async function POST(req: NextRequest) {
         company: cleanCompany,
         title: cleanTitle,
       },
-      { uid, ref: mode === "admin" ? "admin_invite" : `pin_${cleanPin}` },
-      Number(validDays) || 7
+      {
+        uid,
+        ref: mode === "admin" ? "admin_invite" : `pin_${cleanPin}`,
+        audience: cleanAudience || undefined,
+      },
+      Number(validDays) || 7,
+      cleanAudience || undefined
     );
 
     const expiresAt = new Date(Date.now() + (Number(validDays) || 7) * 24 * 60 * 60 * 1000).toISOString();

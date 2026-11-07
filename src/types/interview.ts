@@ -6,6 +6,7 @@ export interface TrackingData {
   ref?: string; // Referans (örn: linkedin, email_blast, direct)
   source?: string; // Kaynak
   campaign?: string; // Kampanya adı
+  audience?: string; // Hedef Kitle / Segment (örn: "Bakım Mühendisleri", "Satın Alma")
 }
 
 // --- Survey / Project Types ---
@@ -19,6 +20,7 @@ export interface SurveyConfig {
   estimatedMinutes: number;
   aiContext: string; // Mini AI için bağlam bilgisi
   tips?: string[]; // Platform kullanım ipuçları
+  isActive?: boolean; // Anket aktiflik / pasiflik durumu (varsayılan: true)
   questions: Question[];
 }
 

@@ -16,9 +16,6 @@ export function getSurveyById(id: string): SurveyConfig {
 
 export async function getSurveyByIdAsync(id: string): Promise<SurveyConfig> {
   const normalizedId = id.trim().toLowerCase();
-  if (SURVEY_REGISTRY[normalizedId]) {
-    return SURVEY_REGISTRY[normalizedId];
-  }
 
   if (isSupabaseConfigured() && supabaseAdmin) {
     try {
@@ -38,6 +35,7 @@ export async function getSurveyByIdAsync(id: string): Promise<SurveyConfig> {
           targetAudience: data.target_audience || "",
           estimatedMinutes: data.estimated_minutes || 3,
           aiContext: data.ai_context || "",
+          isActive: data.is_active ?? true,
           questions: Array.isArray(data.questions) ? data.questions : [],
         };
         SURVEY_REGISTRY[data.id] = survey;
@@ -47,6 +45,10 @@ export async function getSurveyByIdAsync(id: string): Promise<SurveyConfig> {
     } catch {
       // Supabase hatasında fallback
     }
+  }
+
+  if (SURVEY_REGISTRY[normalizedId]) {
+    return SURVEY_REGISTRY[normalizedId];
   }
 
   return PRINT_IT_RIGHT_SURVEY;

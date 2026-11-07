@@ -32,7 +32,19 @@ async function SurveyAccessGate({
   const rawParams = await searchParams;
 
   const survey = await getSurveyByIdAsync(surveyId);
-  const access = evaluateSurveyAccess(surveyId, rawParams);
+
+  // 1. Anket aktiflik / pasiflik denetimi
+  if (survey.isActive === false) {
+    return (
+      <AccessDeniedCard
+        reason="survey_inactive"
+        surveyId={surveyId}
+      />
+    );
+  }
+
+  // 2. Erişim yetkisi denetimi
+  const access = evaluateSurveyAccess(surveyId, rawParams, survey.isActive);
 
   if (!access.isAllowed) {
     return (
@@ -43,9 +55,14 @@ async function SurveyAccessGate({
     );
   }
 
+  // 3. Linkte tanımlanan özel hedef kitle ile dinamik zenginleştirme
+  const effectiveSurvey = access.audience
+    ? { ...survey, targetAudience: access.audience }
+    : survey;
+
   return (
     <InterviewWizard
-      project={survey}
+      project={effectiveSurvey}
       initialParticipant={access.prefilledParticipant}
       initialTracking={access.tracking}
     />

@@ -13,7 +13,6 @@ export async function GET() {
     const { data, error } = await supabaseAdmin
       .from("surveys")
       .select("*")
-      .eq("is_active", true)
       .order("created_at", { ascending: true });
 
     if (error || !data || data.length === 0) {
@@ -29,6 +28,7 @@ export async function GET() {
       targetAudience: row.target_audience || "",
       estimatedMinutes: row.estimated_minutes || 3,
       aiContext: row.ai_context || "",
+      isActive: row.is_active ?? true,
       questions: Array.isArray(row.questions) ? row.questions : [],
     }));
 
@@ -155,7 +155,7 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, accessPin, title, description, tagline, targetAudience, estimatedMinutes, aiContext } = body;
+    const { id, accessPin, title, description, tagline, targetAudience, estimatedMinutes, aiContext, isActive } = body;
 
     if (!id) {
       return NextResponse.json({ error: "Anket ID zorunludur." }, { status: 400 });
@@ -164,6 +164,10 @@ export async function PATCH(req: NextRequest) {
     const updates: Record<string, any> = {
       updated_at: new Date().toISOString(),
     };
+
+    if (isActive !== undefined) {
+      updates.is_active = Boolean(isActive);
+    }
 
     if (accessPin) {
       const cleanPin = accessPin.trim().toUpperCase();

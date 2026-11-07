@@ -100,4 +100,49 @@ describe("Survey Access: evaluateSurveyAccess Governance Rules", () => {
     assert.strictEqual(access.tracking?.uid, "crm_user_55");
     assert.strictEqual(access.prefilledParticipant?.fullName, "Mehmet Öz");
   });
+
+  test("Pasife alınmış anket için geçerli token, kod veya kısayol dahi olsa erişim engellenmelidir (survey_inactive)", () => {
+    // 1. Kampanya kodu ile pasif ankete erişim
+    const codeAccess = evaluateSurveyAccess("print-it-right", { code: "PIR-2026" }, false);
+    assert.strictEqual(codeAccess.isAllowed, false);
+    assert.strictEqual(codeAccess.reason, "survey_inactive");
+
+    // 2. Geçerli süreli token ile pasif ankete erişim
+    const validToken = generateInviteToken("print-it-right", { fullName: "Test Katılımcı" });
+    const tokenAccess = evaluateSurveyAccess("print-it-right", { token: validToken }, false);
+    assert.strictEqual(tokenAccess.isAllowed, false);
+    assert.strictEqual(tokenAccess.reason, "survey_inactive");
+
+    // 3. Geliştirici kısayolu dahi olsa pasif ankette engellenmeli
+    const devAccess = evaluateSurveyAccess("print-it-right", { n: "e" }, false);
+    assert.strictEqual(devAccess.isAllowed, false);
+    assert.strictEqual(devAccess.reason, "survey_inactive");
+  });
+
+  test("Hedef kitleye özel link parametresi (?audience=...) ile erişim onaylanmalı ve segment tracking'e işlenmelidir", () => {
+    const audienceLink = evaluateSurveyAccess("print-it-right", {
+      audience: "Bakım Mühendisleri",
+      ref: "camp_bakim",
+    });
+    assert.strictEqual(audienceLink.isAllowed, true);
+    assert.strictEqual(audienceLink.audience, "Bakım Mühendisleri");
+    assert.strictEqual(audienceLink.tracking?.audience, "Bakım Mühendisleri");
+    assert.strictEqual(audienceLink.tracking?.ref, "camp_bakim");
+  });
+
+  test("Kişiye özel davet token'ında saklanan hedef kitle başarıyla çözülmeli ve oturuma aktarılmalıdır", () => {
+    const token = generateInviteToken(
+      "print-it-right",
+      { fullName: "Ahmet Usta", email: "ahmet@fabrika.com", title: "Başmühendis" },
+      { uid: "usr_44" },
+      7,
+      "Kalite & Hijyen Şefleri" // Hedef Kitle / Segment
+    );
+
+    const access = evaluateSurveyAccess("print-it-right", { token });
+    assert.strictEqual(access.isAllowed, true);
+    assert.strictEqual(access.audience, "Kalite & Hijyen Şefleri");
+    assert.strictEqual(access.tracking?.audience, "Kalite & Hijyen Şefleri");
+    assert.strictEqual(access.prefilledParticipant?.fullName, "Ahmet Usta");
+  });
 });

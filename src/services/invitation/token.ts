@@ -9,6 +9,7 @@ export interface InvitePayload {
   company?: string;
   title?: string;
   ref?: string;
+  audience?: string; // Hedef Kitle / Segment (örn: "Bakım Mühendisleri", "Satın Alma")
 }
 
 // Kolay erişim kampanya kodları (Landing page'de veya kısa linklerde girilebilecek kodlar)
@@ -32,7 +33,8 @@ export function generateInviteToken(
   surveyId: string,
   participant?: Partial<ParticipantData>,
   tracking?: TrackingData,
-  validDays: number = 7
+  validDays: number = 7,
+  audience?: string
 ): string {
   const exp = Date.now() + validDays * 24 * 60 * 60 * 1000;
   const payload: InvitePayload = {
@@ -44,6 +46,7 @@ export function generateInviteToken(
     email: participant?.email,
     company: participant?.company,
     title: participant?.title,
+    audience: audience || tracking?.audience,
   };
 
   const jsonStr = JSON.stringify(payload);
@@ -84,22 +87,35 @@ export function verifyInviteToken(token: string): {
 }
 
 /**
- * URL arama parametrelerine göre anket erişim hakkını denetler.
+ * URL arama parametrelerine ve anket durumuna göre anket erişim hakkını denetler.
  */
 export function evaluateSurveyAccess(
   surveyId: string,
-  searchParams: Record<string, string | string[] | undefined>
+  searchParams: Record<string, string | string[] | undefined>,
+  surveyIsActive: boolean = true
 ): {
   isAllowed: boolean;
-  reason?: "missing_access" | "expired" | "invalid_code";
+  reason?: "missing_access" | "expired" | "invalid_code" | "survey_inactive";
   prefilledParticipant?: Partial<ParticipantData>;
   tracking?: TrackingData;
+  audience?: string;
 } {
+  // Anket pasif ise doğrudan erişimi durdur
+  if (!surveyIsActive) {
+    return { isAllowed: false, reason: "survey_inactive" };
+  }
+
   const token = typeof searchParams.token === "string" ? searchParams.token : undefined;
   const code = typeof searchParams.code === "string" ? searchParams.code.toUpperCase().trim() : undefined;
   const quickN = typeof searchParams.n === "string" ? searchParams.n : undefined;
   const uid = typeof searchParams.uid === "string" ? searchParams.uid : undefined;
   const ref = typeof searchParams.ref === "string" ? searchParams.ref : undefined;
+  const audience =
+    typeof searchParams.audience === "string"
+      ? searchParams.audience
+      : typeof searchParams.seg === "string"
+      ? searchParams.seg
+      : undefined;
 
   // 1. Geliştirici Kısayolu (?n=e) — Her zaman geçerli
   if (quickN) {
@@ -113,7 +129,8 @@ export function evaluateSurveyAccess(
         title: "Challenge Lead",
         consentGiven: true,
       },
-      tracking: { uid: `dev_${quickN}`, ref: "dev_shortcut" },
+      tracking: { uid: `dev_${quickN}`, ref: "dev_shortcut", audience },
+      audience,
     };
   }
 
@@ -128,7 +145,8 @@ export function evaluateSurveyAccess(
     }
     return {
       isAllowed: true,
-      tracking: { ref: `code_${code}` },
+      tracking: { ref: `code_${code}`, audience },
+      audience,
     };
   }
 
@@ -147,6 +165,8 @@ export function evaluateSurveyAccess(
       return { isAllowed: false, reason: "missing_access" };
     }
 
+    const effectiveAudience = payload.audience || audience;
+
     return {
       isAllowed: true,
       prefilledParticipant: {
@@ -158,13 +178,15 @@ export function evaluateSurveyAccess(
       tracking: {
         uid: payload.uid,
         ref: payload.ref,
+        audience: effectiveAudience,
       },
+      audience: effectiveAudience,
     };
   }
 
-  // 4. Doğrudan parametrelerle gelme (?uid=... veya ?name=...)
-  // Kurumsal URL yapısı: Eğer en azından bir uid veya ref parametresi varsa geçerli say
-  if (uid || ref || searchParams.name) {
+  // 4. Doğrudan parametrelerle gelme (?uid=... veya ?name=... veya ?audience=...)
+  // Kurumsal URL yapısı: Eğer en azından bir uid, ref, name veya audience parametresi varsa geçerli say
+  if (uid || ref || searchParams.name || audience) {
     return {
       isAllowed: true,
       prefilledParticipant: {
@@ -176,7 +198,9 @@ export function evaluateSurveyAccess(
       tracking: {
         uid,
         ref,
+        audience,
       },
+      audience,
     };
   }
 
