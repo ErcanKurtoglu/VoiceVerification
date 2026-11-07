@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { InterviewSession, SurveyConfig, Question } from "@/types/interview";
 import { getAllSurveys, PRINT_IT_RIGHT_SURVEY } from "@/surveys";
+import { validateSurveyQuestion } from "@/features/anti-garbage/survey-validator";
 
 function AdminDashboardContent() {
   const searchParams = useSearchParams();
@@ -78,13 +79,26 @@ function AdminDashboardContent() {
   const [newSurveyAudience, setNewSurveyAudience] = useState("");
   const [newSurveyAiContext, setNewSurveyAiContext] = useState("");
   const [newSurveyQuestions, setNewSurveyQuestions] = useState<Array<{ title: string; description: string; clarificationHint: string }>>([
-    { title: "İlk Soru Başlığı", description: "Bu soruda katılımcıdan öğrenmek istediğiniz ana problem.", clarificationHint: "AI asistan ipucu." },
-    { title: "İkinci Soru Başlığı", description: "Bu problemin maliyeti veya sıklığı.", clarificationHint: "AI asistan ipucu." },
-    { title: "Üçüncü Soru Başlığı", description: "Çözüm teklifiniz veya pilot teste bakış açıları.", clarificationHint: "AI asistan ipucu." },
+    { title: "", description: "", clarificationHint: "" },
   ]);
   const [isSavingSurvey, setIsSavingSurvey] = useState(false);
   const [surveySaveError, setSurveySaveError] = useState("");
   const [surveySaveSuccess, setSurveySaveSuccess] = useState("");
+
+  const handleOpenNewSurveyModal = () => {
+    setNewSurveyTitle("");
+    setNewSurveyTagline("");
+    setNewSurveyDesc("");
+    setNewSurveyPin("");
+    setNewSurveyAudience("");
+    setNewSurveyAiContext("");
+    setNewSurveyQuestions([
+      { title: "", description: "", clarificationHint: "" },
+    ]);
+    setSurveySaveError("");
+    setSurveySaveSuccess("");
+    setIsNewSurveyModalOpen(true);
+  };
 
   // PIN Değiştirme Modal State
   const [editingPinSurvey, setEditingPinSurvey] = useState<{ id: string; title: string; currentPin: string } | null>(null);
@@ -209,12 +223,29 @@ function AdminDashboardContent() {
       return;
     }
 
+    if (newSurveyQuestions.length === 0) {
+      setSurveySaveError("Ankete en az bir adet soru eklemelisiniz.");
+      return;
+    }
+
+    // Her soru için boş ve şablon denetimi
+    for (let i = 0; i < newSurveyQuestions.length; i++) {
+      const q = newSurveyQuestions[i];
+      const validation = validateSurveyQuestion(q);
+      if (!validation.isValid) {
+        setSurveySaveError(`Soru #${i + 1}: ${validation.error}`);
+        return;
+      }
+    }
+
     const formattedQuestions: Question[] = newSurveyQuestions.map((q, idx) => ({
       id: `q${idx + 1}_${Date.now()}`,
       order: idx + 1,
-      title: q.title.trim() || `Soru ${idx + 1}`,
-      description: q.description.trim() || "Açıklama",
-      clarificationHint: q.clarificationHint.trim() || "Teknik detay.",
+      title: q.title.trim(),
+      description: q.description.trim(),
+      clarificationHint:
+        q.clarificationHint.trim() ||
+        "Soruyu yanıtlarken sahadaki somut deneyimlerinizi aktarabilirsiniz.",
       maxDurationSec: 120,
     }));
 
@@ -1094,7 +1125,7 @@ function AdminDashboardContent() {
               </div>
 
               <button
-                onClick={() => setIsNewSurveyModalOpen(true)}
+                onClick={handleOpenNewSurveyModal}
                 className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md flex items-center gap-1.5 transition-all active:scale-95"
               >
                 <Plus className="w-4 h-4" />
@@ -1263,6 +1294,9 @@ function AdminDashboardContent() {
                     <label className="block text-xs font-medium text-slate-300 mb-1">
                       Kısa Etiket (Tagline)
                     </label>
+                    <p className="text-[11px] text-slate-500 mb-1.5 leading-tight">
+                      Katılımcı ekranının en üstünde rozet (badge) olarak görünen 2-4 kelimelik konu/kategori etiketi.
+                    </p>
                     <input
                       type="text"
                       value={newSurveyTagline}
@@ -1274,8 +1308,11 @@ function AdminDashboardContent() {
 
                   <div>
                     <label className="block text-xs font-medium text-slate-300 mb-1">
-                      Hedef Kitle
+                      Hedef Kitle (Target Audience)
                     </label>
+                    <p className="text-[11px] text-slate-500 mb-1.5 leading-tight">
+                      Bu araştırmanın yöneltildiği profesyonel unvanlar (Örn: Bakım Mühendisleri, Fabrika Yöneticileri).
+                    </p>
                     <input
                       type="text"
                       value={newSurveyAudience}
@@ -1290,6 +1327,9 @@ function AdminDashboardContent() {
                   <label className="block text-xs font-medium text-slate-300 mb-1">
                     Anket Açıklaması <span className="text-red-400">*</span>
                   </label>
+                  <p className="text-[11px] text-slate-500 mb-1.5 leading-tight">
+                    Anketin katılımcıya sunulan genel amacı ve katacağı değer.
+                  </p>
                   <textarea
                     rows={2}
                     value={newSurveyDesc}
@@ -1301,13 +1341,16 @@ function AdminDashboardContent() {
 
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">
-                    Yapay Zeka Asistan Bağlamı (AI Context)
+                    Yapay Zeka Asistan Bağlamı (AI Context / System Prompt)
                   </label>
+                  <p className="text-[11px] text-slate-500 mb-1.5 leading-tight">
+                    Katılımcı &quot;AI Asistana Sor&quot; butonuna bastığında asistanın bürüneceği uzmanlık rolü, teknik sektör dili ve guardrail kuralları.
+                  </p>
                   <textarea
-                    rows={2}
+                    rows={3}
                     value={newSurveyAiContext}
                     onChange={(e) => setNewSurveyAiContext(e.target.value)}
-                    placeholder="Yapay zeka (AI) asistanının sorularda katılımcıya yardımcı olabilmesi için sektör teknik terimleri ve arka plan bilgisi..."
+                    placeholder="Örn: Sen endüstriyel gıda üretiminde hijyen ve yedek parça süreçlerinde 15 yıllık tecrübeli bir teknik danışmansın. Katılımcıya soruyla ilgili fabrika jargonu ve teknik detaylarda rehberlik et ancak asla kendi görüşünü dayatma..."
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
                   />
                 </div>
@@ -1315,76 +1358,128 @@ function AdminDashboardContent() {
                 {/* Dinamik Soru Listesi */}
                 <div className="pt-2 border-t border-slate-800 space-y-3">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-white">
-                      Anket Soruları ({newSurveyQuestions.length})
-                    </label>
+                    <div>
+                      <label className="text-xs font-semibold text-white flex items-center gap-1.5">
+                        <span>Anket Soruları ({newSurveyQuestions.length})</span>
+                        <span className="text-[11px] font-normal text-slate-400">
+                          (Şablon metinler engellenir, gerçek soru girilmelidir)
+                        </span>
+                      </label>
+                    </div>
                     <button
                       type="button"
                       onClick={() =>
                         setNewSurveyQuestions([
                           ...newSurveyQuestions,
                           {
-                            title: `Soru ${newSurveyQuestions.length + 1}`,
-                            description: "Soru detayı...",
-                            clarificationHint: "İpucu...",
+                            title: "",
+                            description: "",
+                            clarificationHint: "",
                           },
                         ])
                       }
-                      className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                      className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-medium transition-colors"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Soru Ekle</span>
                     </button>
                   </div>
 
-                  <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
-                    {newSurveyQuestions.map((q, idx) => (
-                      <div
-                        key={idx}
-                        className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 relative"
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-[11px] font-bold text-indigo-400">
-                            Soru #{idx + 1}
-                          </span>
-                          {newSurveyQuestions.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setNewSurveyQuestions(newSurveyQuestions.filter((_, i) => i !== idx))
-                              }
-                              className="text-red-400 hover:text-red-300 p-1"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                  <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                    {newSurveyQuestions.map((q, idx) => {
+                      const qStatus = validateSurveyQuestion(q);
+                      const isReady = qStatus.isValid;
+
+                      return (
+                        <div
+                          key={idx}
+                          className={`p-3.5 rounded-2xl bg-slate-950 border transition-colors space-y-2.5 relative ${
+                            isReady ? "border-slate-800" : "border-amber-500/30 bg-amber-500/[0.02]"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-[11px] font-bold text-indigo-400">
+                                Soru #{idx + 1}
+                              </span>
+                              {isReady ? (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-medium">
+                                  ✓ Hazır
+                                </span>
+                              ) : (
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-medium">
+                                  ● Doldurulması Zorunlu
+                                </span>
+                              )}
+                            </div>
+
+                            {newSurveyQuestions.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setNewSurveyQuestions(newSurveyQuestions.filter((_, i) => i !== idx))
+                                }
+                                title="Bu Soruyu Kaldır"
+                                className="text-red-400 hover:text-red-300 p-1 rounded-lg hover:bg-red-500/10 transition-colors"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] text-slate-400 mb-1">
+                              Soru Başlığı <span className="text-red-400">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={q.title}
+                              onChange={(e) => {
+                                const updated = [...newSurveyQuestions];
+                                updated[idx].title = e.target.value;
+                                setNewSurveyQuestions(updated);
+                              }}
+                              placeholder="Örn: Parça Tedarik Süresi & Plansız Duruş Kaybı"
+                              className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] text-slate-400 mb-1">
+                              Soru Açıklaması & Kapsamı <span className="text-red-400">*</span>
+                            </label>
+                            <textarea
+                              rows={2}
+                              value={q.description}
+                              onChange={(e) => {
+                                const updated = [...newSurveyQuestions];
+                                updated[idx].description = e.target.value;
+                                setNewSurveyQuestions(updated);
+                              }}
+                              placeholder="Örn: Geçtiğimiz 1 yılda tek bir yedek parça gecikmesi yüzünden dolum veya üretim hattınızın durduğu en kritik anı ve o günkü OEM teslim süresini anlatabilir misiniz?"
+                              className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-[11px] text-slate-400 mb-1">
+                              AI Asistan İpucu (Clarification Hint) - İsteğe Bağlı
+                            </label>
+                            <input
+                              type="text"
+                              value={q.clarificationHint}
+                              onChange={(e) => {
+                                const updated = [...newSurveyQuestions];
+                                updated[idx].clarificationHint = e.target.value;
+                                setNewSurveyQuestions(updated);
+                              }}
+                              placeholder="Örn: Katılımcı soruyla ilgili detay isterse yedek parça temin süresi ve OEM garantisini düşünebileceğini belirt."
+                              className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-300 focus:outline-none focus:border-indigo-500"
+                            />
+                          </div>
                         </div>
-
-                        <input
-                          type="text"
-                          value={q.title}
-                          onChange={(e) => {
-                            const updated = [...newSurveyQuestions];
-                            updated[idx].title = e.target.value;
-                            setNewSurveyQuestions(updated);
-                          }}
-                          placeholder="Soru Başlığı"
-                          className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
-                        />
-
-                        <textarea
-                          rows={2}
-                          value={q.description}
-                          onChange={(e) => {
-                            const updated = [...newSurveyQuestions];
-                            updated[idx].description = e.target.value;
-                            setNewSurveyQuestions(updated);
-                          }}
-                          placeholder="Soru Açıklaması ve Kapsamı"
-                          className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
-                        />
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 

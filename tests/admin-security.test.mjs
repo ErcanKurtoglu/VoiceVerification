@@ -161,3 +161,137 @@ describe("Admin Data Presentation: Audio Preservation vs UI Cleanliness", () => 
     assert.strictEqual(feedbackNotes, "Arayüz ve ses algılama çok başarılı.");
   });
 });
+
+describe("Admin Survey Question Guard & Template Validation", () => {
+  function normalizeForPatternCheck(str) {
+    return str
+      .trim()
+      .replace(/İ/g, "i")
+      .replace(/I/g, "ı")
+      .toLocaleLowerCase("tr")
+      .replace(/ı/g, "i")
+      .replace(/ç/g, "c")
+      .replace(/ş/g, "s")
+      .replace(/ğ/g, "g")
+      .replace(/ü/g, "u")
+      .replace(/ö/g, "o");
+  }
+
+  const DUMMY_TEMPLATE_PATTERNS = [
+    /^soru\s*\d*$/i,
+    /^yeni soru/i,
+    /^ilk soru/i,
+    /^ikinci soru/i,
+    /^ucuncu soru/i,
+    /^soru detayi/i,
+    /^aciklama$/i,
+    /^ipucu/i,
+    /ogrenmek istediginiz ana problem/i,
+    /maliyeti veya sikligi/i,
+    /pilot teste bakis/i,
+    /sablon/i,
+    /template/i,
+    /ornek soru/i,
+    /lorem ipsum/i,
+    /teknik detay\./i,
+  ];
+
+  function validateQuestion(q) {
+    const cleanTitle = (q.title || "").trim();
+    const cleanDesc = (q.description || "").trim();
+
+    if (!cleanTitle) {
+      return { isValid: false, error: "Soru başlığı boş bırakılamaz." };
+    }
+    if (cleanTitle.length < 3) {
+      return { isValid: false, error: "Soru başlığı en az 3 karakter olmalıdır." };
+    }
+
+    const normalizedTitle = normalizeForPatternCheck(cleanTitle);
+    const isTitleTemplate = DUMMY_TEMPLATE_PATTERNS.some((p) => p.test(normalizedTitle));
+    if (isTitleTemplate) {
+      return {
+        isValid: false,
+        error: `"${cleanTitle}" şablon veya taslak bir başlıktır. Lütfen gerçek bir soru başlığı giriniz.`,
+      };
+    }
+
+    if (!cleanDesc) {
+      return { isValid: false, error: "Soru açıklaması boş bırakılamaz." };
+    }
+    if (cleanDesc.length < 5) {
+      return { isValid: false, error: "Soru açıklaması en az 5 karakter olmalıdır." };
+    }
+
+    const normalizedDesc = normalizeForPatternCheck(cleanDesc);
+    const isDescTemplate = DUMMY_TEMPLATE_PATTERNS.some((p) => p.test(normalizedDesc));
+    if (isDescTemplate) {
+      return {
+        isValid: false,
+        error: "Soru açıklaması şablon metin içeriyor. Lütfen katılımcıya yöneltilecek gerçek sorunun kapsamını açıklayınız.",
+      };
+    }
+
+    return { isValid: true };
+  }
+
+  test("Boş soru başlığı veya açıklaması reddedilmelidir", () => {
+    assert.strictEqual(validateQuestion({ title: "", description: "Detay" }).isValid, false);
+    assert.strictEqual(validateQuestion({ title: "Başlık", description: "" }).isValid, false);
+    assert.strictEqual(validateQuestion({ title: "ab", description: "Detaylar" }).isValid, false);
+    assert.strictEqual(validateQuestion({ title: "Başlık", description: "kısa" }).isValid, false);
+  });
+
+  test("Şablon veya taslak dummy soru başlıkları engellenmelidir", () => {
+    const dummyTitles = [
+      "Soru 1",
+      "Soru 2",
+      "Soru",
+      "İlk Soru Başlığı",
+      "İkinci Soru Başlığı",
+      "Üçüncü Soru Başlığı",
+      "Yeni Soru Ekle",
+      "Şablon Soru",
+      "Template Title",
+    ];
+
+    for (const title of dummyTitles) {
+      const res = validateQuestion({
+        title,
+        description: "Bu üretim tesisinde karşılaşılan somut gecikmeleri anlatınız.",
+      });
+      assert.strictEqual(res.isValid, false, `Dummy title "${title}" engellenmeliydi.`);
+    }
+  });
+
+  test("Şablon veya taslak dummy soru açıklamaları engellenmelidir", () => {
+    const dummyDescriptions = [
+      "Soru detayı...",
+      "Bu soruda katılımcıdan öğrenmek istediğiniz ana problem.",
+      "Bu problemin maliyeti veya sıklığı.",
+      "Çözüm teklifiniz veya pilot teste bakış açıları.",
+      "Açıklama",
+      "İpucu...",
+      "Lorem ipsum dolor sit amet",
+    ];
+
+    for (const desc of dummyDescriptions) {
+      const res = validateQuestion({
+        title: "Kritik Parça Tedarik Süreçleri",
+        description: desc,
+      });
+      assert.strictEqual(res.isValid, false, `Dummy description "${desc}" engellenmeliydi.`);
+    }
+  });
+
+  test("Gerçek ve anlamlı soru başlığı ve açıklaması başarıyla onaylanmalıdır", () => {
+    const res = validateQuestion({
+      title: "Parça Tedarik Süresi & Plansız Duruş Kaybı",
+      description: "Geçtiğimiz 1 yılda tek bir yedek parça gecikmesi yüzünden dolum veya üretim hattınızın durduğu en kritik anı ve o günkü teslim süresini anlatabilir misiniz?",
+      clarificationHint: "Katılımcı OEM termin süresi veya duruş maliyetini paylaşabilir.",
+    });
+
+    assert.strictEqual(res.isValid, true);
+    assert.strictEqual(res.error, undefined);
+  });
+});

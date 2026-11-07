@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin, isSupabaseConfigured } from "@/services/storage/supabase-client";
 import { SurveyConfig } from "@/types/interview";
 import { PRINT_IT_RIGHT_SURVEY } from "@/surveys/print-it-right";
+import { validateSurveyQuestion } from "@/features/anti-garbage/survey-validator";
 
 export async function GET() {
   try {
@@ -64,6 +65,17 @@ export async function POST(req: NextRequest) {
         { error: "Başlık, açıklama, PIN kodu ve en az bir soru zorunludur." },
         { status: 400 }
       );
+    }
+
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      const validation = validateSurveyQuestion(q);
+      if (!validation.isValid) {
+        return NextResponse.json(
+          { error: `Soru #${i + 1}: ${validation.error}` },
+          { status: 400 }
+        );
+      }
     }
 
     const cleanPin = accessPin.trim().toUpperCase();
