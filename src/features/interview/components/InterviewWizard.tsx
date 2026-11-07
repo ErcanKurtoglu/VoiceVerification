@@ -151,12 +151,34 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     }
   };
 
-  // Önceki Soruya Geri Dönüş
-  const handlePreviousQuestion = () => {
+  // Taslak yanıtı kaydetme (Kullanıcı önceki soruya dönerken veya yazarken)
+  const handleSaveQuestionDraft = (draftResponse: QuestionResponse) => {
+    setResponses((prev) => {
+      const updated = {
+        ...prev,
+        [draftResponse.questionId]: draftResponse,
+      };
+      saveDraft(participant, updated, tracking, "questions", currentQuestionIndex);
+      return updated;
+    });
+  };
+
+  // Önceki Soruya Geri Dönüş (O anki sorunun taslağını kaybetmeden koru)
+  const handlePreviousQuestion = (draftResponse?: QuestionResponse) => {
     if (currentQuestionIndex > 0) {
       const prevIdx = currentQuestionIndex - 1;
+      setResponses((prev) => {
+        let updated = prev;
+        if (draftResponse) {
+          updated = {
+            ...prev,
+            [draftResponse.questionId]: draftResponse,
+          };
+        }
+        saveDraft(participant, updated, tracking, "questions", prevIdx);
+        return updated;
+      });
       setCurrentQuestionIndex(prevIdx);
-      saveDraft(participant, responses, tracking, "questions", prevIdx);
     }
   };
 
@@ -283,6 +305,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
           projectContext={project.aiContext}
           initialResponse={responses[project.questions[currentQuestionIndex].id]}
           onResponseSubmit={handleQuestionSubmit}
+          onSaveDraft={handleSaveQuestionDraft}
           onPrevious={currentQuestionIndex > 0 ? handlePreviousQuestion : undefined}
         />
       )}

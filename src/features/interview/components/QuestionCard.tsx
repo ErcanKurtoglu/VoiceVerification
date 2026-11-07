@@ -16,7 +16,8 @@ interface QuestionCardProps {
   projectContext: string;
   initialResponse?: QuestionResponse;
   onResponseSubmit: (response: QuestionResponse) => void;
-  onPrevious?: () => void;
+  onSaveDraft?: (response: QuestionResponse) => void;
+  onPrevious?: (draftResponse?: QuestionResponse) => void;
 }
 
 export const QuestionCard: React.FC<QuestionCardProps> = ({
@@ -26,6 +27,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   projectContext,
   initialResponse,
   onResponseSubmit,
+  onSaveDraft,
   onPrevious,
 }) => {
   const { t } = useLanguage();
@@ -55,6 +57,37 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   );
   const hasTextResponse = textInput.trim().length >= 10;
   const canProceed = mode === "audio" ? hasAudioResponse : hasTextResponse;
+
+  // Önceki soruya dönerken mevcut sorunun yanıtını taslak olarak koru
+  const handlePrevious = () => {
+    let currentDraft: QuestionResponse | undefined = undefined;
+
+    if (mode === "text") {
+      if (textInput.trim().length > 0) {
+        currentDraft = {
+          questionId: question.id,
+          mode: "text",
+          textResponse: textInput.trim(),
+        };
+      }
+    } else {
+      const activeBlob = recorder.audioBlob || initialResponse?.audioBlob;
+      if (activeBlob) {
+        currentDraft = {
+          questionId: question.id,
+          mode: "audio",
+          audioBlob: activeBlob,
+          durationSec: recorder.duration || initialResponse?.durationSec || 0,
+        };
+      }
+    }
+
+    if (currentDraft && onSaveDraft) {
+      onSaveDraft(currentDraft);
+    }
+
+    onPrevious?.(currentDraft);
+  };
 
   const handleNext = () => {
     if (!canProceed) return;
@@ -147,6 +180,14 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             initialAudioUrl={initialAudioUrl}
             initialDuration={initialResponse?.durationSec}
             onResetInitial={() => setInitialAudioUrl(null)}
+            onAudioConfirmed={(blob, dur) => {
+              onSaveDraft?.({
+                questionId: question.id,
+                mode: "audio",
+                audioBlob: blob,
+                durationSec: dur,
+              });
+            }}
           />
         ) : (
           <div className="w-full">
@@ -154,6 +195,15 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               rows={4}
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
+              onBlur={() => {
+                if (textInput.trim().length > 0) {
+                  onSaveDraft?.({
+                    questionId: question.id,
+                    mode: "text",
+                    textResponse: textInput.trim(),
+                  });
+                }
+              }}
               placeholder={t.textPlaceholder}
               className="w-full p-4 rounded-2xl bg-slate-800/60 border border-slate-700 text-xs md:text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 transition-all leading-relaxed"
             />
@@ -170,8 +220,8 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         {onPrevious ? (
           <button
             type="button"
-            onClick={onPrevious}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-xs font-medium transition-all active:scale-95"
+            onClick={handlePrevious}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-xs font-medium transition-all active:scale-95 cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>{t.prevQuestion}</span>

@@ -139,3 +139,61 @@ describe("Survey Lifecycle: Deferred Processing & Final Payload Assembly", () =>
     assert.strictEqual(displayRating, "Seçim Yapılmadı");
   });
 });
+
+describe("Survey Lifecycle: Back-Navigation Draft Preservation", () => {
+  test("Son soruda (4. soru) metin yazılıp 'Önceki Soru' dendiğinde ve geri gelindiğinde metin korunmalıdır", () => {
+    let responses = {};
+
+    // 1. Kullanıcı 4. soruda (q4) metin yazdı
+    const q4Id = "pir-q4-satinalma";
+    const userTypedText = "Bizim fabrikada acil parça siparişleri için bakım bütçesi ayrılmıştır.";
+
+    // 2. Kullanıcı 'Önceki Soru' butonuna bastı (handlePrevious draft saving)
+    const q4Draft = {
+      questionId: q4Id,
+      mode: "text",
+      textResponse: userTypedText,
+    };
+
+    // Wizard handlePreviousQuestion simülasyonu
+    responses = {
+      ...responses,
+      [q4Draft.questionId]: q4Draft,
+    };
+
+    // 3. Kullanıcı 3. soruyu inceledi ve tekrar 'Sonraki Soru' diyerek 4. soruya geçti
+    const restoredResponse = responses[q4Id];
+
+    assert.ok(restoredResponse, "4. sorunun yanıtı silinmemeli, hafızada bulunmalıdır.");
+    assert.strictEqual(restoredResponse.mode, "text");
+    assert.strictEqual(restoredResponse.textResponse, userTypedText);
+  });
+
+  test("Son soruda (4. soru) ses kaydı alınıp 'Önceki Soru' dendiğinde ve geri gelindiğinde ses kaydı korunmalıdır", () => {
+    let responses = {};
+
+    const q4Id = "pir-q4-satinalma";
+    const dummyBlob = { size: 10240, type: "audio/webm" };
+
+    // Kullanıcı ses kaydetti ve 'Önceki Soru' butonuna bastı
+    const q4AudioDraft = {
+      questionId: q4Id,
+      mode: "audio",
+      audioBlob: dummyBlob,
+      durationSec: 42,
+    };
+
+    responses = {
+      ...responses,
+      [q4AudioDraft.questionId]: q4AudioDraft,
+    };
+
+    // Kullanıcı önceki sorudan tekrar 4. soruya geri döndü
+    const restoredAudioResponse = responses[q4Id];
+
+    assert.ok(restoredAudioResponse, "4. sorunun ses kaydı taslağı korunmalıdır.");
+    assert.strictEqual(restoredAudioResponse.mode, "audio");
+    assert.strictEqual(restoredAudioResponse.durationSec, 42);
+    assert.deepStrictEqual(restoredAudioResponse.audioBlob, dummyBlob);
+  });
+});
