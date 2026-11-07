@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, Suspense } from "react";
+import React, { useEffect, useState, useMemo, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -36,6 +36,7 @@ import {
   PauseCircle,
   PlayCircle,
   Wand2,
+  X,
 } from "lucide-react";
 import { InterviewSession, SurveyConfig, Question } from "@/types/interview";
 import { getAllSurveys, PRINT_IT_RIGHT_SURVEY } from "@/surveys";
@@ -179,6 +180,12 @@ function AdminDashboardContent() {
   // Filtreleme & Arama
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSurvey, setFilterSurvey] = useState("all");
+
+  // CSV Dışa Aktarma Modal State
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [exportSurveyId, setExportSurveyId] = useState<string>("all");
+  const [exportAudience, setExportAudience] = useState<string>("all");
+  const [exportOnlyValid, setExportOnlyValid] = useState<boolean>(false);
 
   // Süreli Davetiye & Kitle Linki Üretici State
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
@@ -675,27 +682,114 @@ function AdminDashboardContent() {
     (s) => !Object.values(s.responses).some((r) => r.isJunk)
   ).length;
 
-  // Dinamik Soru Sayılı Kapsamlı CSV Dışa Aktarma
-  const exportToCSV = () => {
-    if (sessions.length === 0) return;
+  // CSV Dışa Aktarma Modal Açıcı
+  const handleOpenExportModal = (initialSurveyId?: string) => {
+    const surveyToSelect = initialSurveyId !== undefined ? initialSurveyId : filterSurvey;
+    setExportSurveyId(surveyToSelect);
+    setExportAudience("all");
+    setExportOnlyValid(false);
+    setIsExportModalOpen(true);
+  };
 
-    // Oturumlarda veya anketlerde yer alan maksimum soru sayısını dinamik tespit et
-    let maxQuestions = 3;
-    sessions.forEach((s) => {
+  const exportToCSV = () => {
+    handleOpenExportModal();
+  };
+
+  // Seçili ankete göre filtrelenmiş mevcut kitle listesi
+  const availableAudiencesForExport = useMemo(() => {
+    const targetSessions = sessions.filter((s) => {
+      if (exportSurveyId === "all") return true;
+      const matched = surveysList.find(
+        (sv: SurveyConfig) => sv.id === exportSurveyId || sv.slug === exportSurveyId
+      );
+      return (
+        s.projectId === exportSurveyId ||
+        (matched && (s.projectId === matched.id || s.projectId === matched.slug))
+      );
+    });
+
+    const audSet = new Set<string>();
+    targetSessions.forEach((s) => {
+      const aud = s.tracking?.audience?.trim();
+      if (aud) {
+        audSet.add(aud);
+      }
+    });
+
+    return Array.from(audSet).sort();
+  }, [sessions, exportSurveyId, surveysList]);
+
+  // Seçilen anket ve kitle filtelerine göre dışa aktarılacak oturumlar
+  const sessionsToExport = useMemo(() => {
+    return sessions.filter((s) => {
+      // 1. Anket Grubu Filtresi
+      if (exportSurveyId !== "all") {
+        const matched = surveysList.find(
+          (sv: SurveyConfig) => sv.id === exportSurveyId || sv.slug === exportSurveyId
+        );
+        const matchesId = s.projectId === exportSurveyId;
+        const matchesSlug =
+          matched && (s.projectId === matched.id || s.projectId === matched.slug);
+        if (!matchesId && !matchesSlug) return false;
+      }
+
+      // 2. Kitle / Segment Filtresi
+      if (exportAudience !== "all") {
+        const sAud = s.tracking?.audience?.trim() || "Genel";
+        if (sAud !== exportAudience) return false;
+      }
+
+      // 3. Geçerlilik / Çöp Filtresi
+      if (exportOnlyValid) {
+        const isJunk = Object.values(s.responses || {}).some((r) => r.isJunk);
+        if (isJunk) return false;
+      }
+
+      return true;
+    });
+  }, [sessions, exportSurveyId, exportAudience, exportOnlyValid, surveysList]);
+
+  // Canlı önizleme için soru sütunu sayısı
+  const exportQuestionCount = useMemo(() => {
+    if (exportSurveyId !== "all") {
+      const target = surveysList.find(
+        (sv: SurveyConfig) => sv.id === exportSurveyId || sv.slug === exportSurveyId
+      );
+      if (target?.questions?.length) return target.questions.length;
+    }
+    let maxQ = 3;
+    sessionsToExport.forEach((s) => {
+      const respCount = Object.keys(s.responses || {}).length;
+      if (respCount > maxQ) maxQ = respCount;
+    });
+    return maxQ;
+  }, [exportSurveyId, surveysList, sessionsToExport]);
+
+  // Seçili Anket ve Kitle Kriterlerine Göre CSV İndirme
+  const executeCSVExport = () => {
+    if (sessionsToExport.length === 0) return;
+
+    const matchedSingleSurvey =
+      exportSurveyId !== "all"
+        ? surveysList.find(
+            (sv: SurveyConfig) =>
+              sv.id === exportSurveyId || sv.slug === exportSurveyId
+          )
+        : null;
+
+    let maxQuestions = matchedSingleSurvey?.questions?.length || 3;
+    sessionsToExport.forEach((s) => {
       const respCount = Object.keys(s.responses || {}).length;
       if (respCount > maxQuestions) maxQuestions = respCount;
     });
 
-    surveysList.forEach((sv: SurveyConfig) => {
-      if (Array.isArray(sv.questions) && sv.questions.length > maxQuestions) {
-        maxQuestions = sv.questions.length;
+    const questionHeaders = Array.from({ length: maxQuestions }, (_, i) => {
+      if (matchedSingleSurvey?.questions?.[i]?.title) {
+        const cleanTitle = matchedSingleSurvey.questions[i].title.replace(/"/g, '""');
+        return `Soru ${i + 1} (${cleanTitle}): Deşifre`;
       }
+      return `Soru ${i + 1} Deşifre`;
     });
-
-    const questionHeaders = Array.from(
-      { length: maxQuestions },
-      (_, i) => `Soru ${i + 1} Deşifre`
-    );
 
     const headers = [
       "Oturum ID",
@@ -713,20 +807,20 @@ function AdminDashboardContent() {
       ...questionHeaders,
     ];
 
-    const rows = sessions.map((s) => {
-      const matchedSurvey = surveysList.find(
-        (sv: SurveyConfig) => sv.id === s.projectId || sv.slug === s.projectId
-      );
+    const rows = sessionsToExport.map((s) => {
+      const matchedSurvey =
+        matchedSingleSurvey ||
+        surveysList.find(
+          (sv: SurveyConfig) => sv.id === s.projectId || sv.slug === s.projectId
+        );
       const responsesList = Object.values(s.responses || {});
 
       const questionCols = Array.from({ length: maxQuestions }, (_, i) => {
         let resp: any = undefined;
-        // Önce anketin sorularındaki sıralı ID üzerinden yanıtı ara
         if (matchedSurvey?.questions && matchedSurvey.questions[i]) {
           const qId = matchedSurvey.questions[i].id;
           resp = s.responses?.[qId];
         }
-        // Bulunamazsa doğrudan liste indeksinden al
         if (!resp) {
           resp = responsesList[i];
         }
@@ -755,14 +849,27 @@ function AdminDashboardContent() {
       ].join(",");
     });
 
+    let fileName = "voice_verification";
+    if (matchedSingleSurvey) {
+      fileName += `_${matchedSingleSurvey.slug || matchedSingleSurvey.id}`;
+    } else {
+      fileName += "_all_surveys";
+    }
+    if (exportAudience !== "all") {
+      const cleanAud = exportAudience.toLowerCase().replace(/[^a-z0-9]/g, "-").replace(/-+/g, "-");
+      fileName += `_${cleanAud}`;
+    }
+    fileName += `_${Date.now()}.csv`;
+
     const csvContent = "\uFEFF" + [headers.join(","), ...rows].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `voice_verification_export_${Date.now()}.csv`;
+    link.download = fileName;
     link.click();
     URL.revokeObjectURL(url);
+    setIsExportModalOpen(false);
   };
 
   // 1. Gizli URL Parametresi Koruması Ekranı (?p=123ercan123)
@@ -1224,6 +1331,15 @@ function AdminDashboardContent() {
                     </option>
                   ))}
                 </select>
+                <button
+                  type="button"
+                  onClick={() => handleOpenExportModal(filterSurvey)}
+                  disabled={filteredSessions.length === 0}
+                  className="p-2 rounded-xl bg-slate-950 hover:bg-slate-800 border border-slate-800 text-emerald-400 hover:text-emerald-300 transition-all disabled:opacity-40 cursor-pointer shadow-sm"
+                  title="Seçili Anket Grubu İçin CSV Dışa Aktar"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                </button>
                 <span className="text-xs text-slate-500">
                   Gösterilen: <strong>{filteredSessions.length}</strong>
                 </span>
@@ -2235,6 +2351,154 @@ function AdminDashboardContent() {
                       <span>Evet, Sil</span>
                     </>
                   )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* CSV DIŞA AKTARMA VE ANKET GRUBU SEÇİMİ MODALI */}
+        {isExportModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+            <div className="w-full max-w-lg p-6 md:p-7 rounded-3xl bg-slate-900 border border-slate-800 text-slate-100 shadow-2xl space-y-5 animate-scaleUp">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                    <Download className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-white">CSV Veri Dışa Aktarma</h3>
+                    <p className="text-[11px] text-slate-400">
+                      Dışa aktarmak istediğiniz anket grubunu ve hedef kitle filtresini seçin.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsExportModalOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                  aria-label="Kapat"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-4 text-xs">
+                {/* 1. Anket Seçimi */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                    Anket Grubu / Proje
+                  </label>
+                  <select
+                    value={exportSurveyId}
+                    onChange={(e) => {
+                      setExportSurveyId(e.target.value);
+                      setExportAudience("all");
+                    }}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700/80 text-xs text-white focus:outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                  >
+                    <option value="all">
+                      Tüm Anketler (Genel Havuz - {sessions.length} toplam kayıt)
+                    </option>
+                    {surveysList.map((sv) => {
+                      const count = sessions.filter(
+                        (s) => s.projectId === sv.id || s.projectId === sv.slug
+                      ).length;
+                      return (
+                        <option key={sv.id} value={sv.id}>
+                          {sv.title} ({count} kayıt)
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* 2. Hedef Kitle / Segment Filtresi */}
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 mb-1.5">
+                    Hedef Kitle / Segment Filtresi
+                  </label>
+                  <select
+                    value={exportAudience}
+                    onChange={(e) => setExportAudience(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700/80 text-xs text-white focus:outline-none focus:border-indigo-500 transition-all cursor-pointer"
+                  >
+                    <option value="all">Tüm Kitleler / Segmentler (Tümü)</option>
+                    {availableAudiencesForExport.map((aud) => {
+                      const count = sessions.filter((s) => {
+                        const matched = surveysList.find(
+                          (sv: SurveyConfig) =>
+                            sv.id === exportSurveyId || sv.slug === exportSurveyId
+                        );
+                        const matchSurvey =
+                          exportSurveyId === "all" ||
+                          s.projectId === exportSurveyId ||
+                          (matched &&
+                            (s.projectId === matched.id || s.projectId === matched.slug));
+                        return matchSurvey && s.tracking?.audience?.trim() === aud;
+                      }).length;
+                      return (
+                        <option key={aud} value={aud}>
+                          {aud} ({count} kayıt)
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+
+                {/* 3. Veri Güvenilirlik Filtresi */}
+                <div className="p-3 rounded-2xl bg-slate-950/60 border border-slate-800">
+                  <label className="flex items-center gap-2.5 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={exportOnlyValid}
+                      onChange={(e) => setExportOnlyValid(e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500/30 cursor-pointer"
+                    />
+                    <span className="text-[11px] text-slate-300 leading-snug">
+                      Sadece onaylı ve geçerli yanıtları dahil et (Yapay zeka tarafından çöp/spam olarak işaretlenenleri hariç tut)
+                    </span>
+                  </label>
+                </div>
+
+                {/* 4. Canlı Önizleme Kutusu */}
+                <div className="p-3.5 rounded-2xl bg-indigo-950/30 border border-indigo-500/20 text-[11px] space-y-1.5">
+                  <div className="flex items-center justify-between text-indigo-300 font-medium">
+                    <span>Dışa Aktarılacak Oturum Sayısı:</span>
+                    <strong className="text-white text-xs">{sessionsToExport.length} Görüşme</strong>
+                  </div>
+                  <div className="flex items-center justify-between text-slate-400">
+                    <span>Dahil Edilen Soru Sütunları:</span>
+                    <span className="text-slate-200">{exportQuestionCount} Soru</span>
+                  </div>
+                  {sessionsToExport.length === 0 && (
+                    <p className="text-amber-400 font-medium pt-1">
+                      ⚠️ Seçtiğiniz kriterlere uygun görüşme kaydı bulunamadı. Lütfen anket veya segment filtresini genişletin.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Alt Butonlar */}
+              <div className="pt-2 border-t border-slate-800 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsExportModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-300 transition-all cursor-pointer"
+                >
+                  Vazgeç
+                </button>
+                <button
+                  type="button"
+                  onClick={executeCSVExport}
+                  disabled={sessionsToExport.length === 0}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-semibold shadow-lg shadow-emerald-600/25 flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>
+                    {sessionsToExport.length === 0
+                      ? "Kayıt Yok"
+                      : `CSV Olarak İndir (${sessionsToExport.length})`}
+                  </span>
                 </button>
               </div>
             </div>

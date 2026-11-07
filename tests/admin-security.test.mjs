@@ -195,6 +195,79 @@ describe("Admin Data Presentation: Audio Preservation vs UI Cleanliness", () => 
     const q4Text = (responsesList[3]?.transcript || "").replace(/"/g, '""');
     assert.strictEqual(q4Text, "4. soru kritik yanıtı burada");
   });
+
+  test("CSV dışa aktarımında seçilen anket ve kitle grubu filtrelenmeli, tüm anketler yerine sadece seçilenler indirilmelidir", () => {
+    const mockSurveys = [
+      {
+        id: "survey-a",
+        slug: "food-production-survey",
+        title: "Food Production Equipment Experience",
+        questions: [{ id: "qa1", title: "Duruş Maliyeti" }, { id: "qa2", title: "Parça Süresi" }],
+      },
+      {
+        id: "survey-b",
+        slug: "print-it-right",
+        title: "Print It Right 3D",
+        questions: [{ id: "qb1", title: "Hijyen Riski" }],
+      },
+    ];
+
+    const allSessions = [
+      {
+        id: "s1",
+        projectId: "food-production-survey",
+        tracking: { audience: "Bakım Mühendisleri" },
+        responses: { qa1: { transcript: "A1 yanıt" }, qa2: { transcript: "A2 yanıt" } },
+      },
+      {
+        id: "s2",
+        projectId: "food-production-survey",
+        tracking: { audience: "Kalite Güvence" },
+        responses: { qa1: { transcript: "A1 başka yanıt" }, qa2: { transcript: "A2 başka yanıt" } },
+      },
+      {
+        id: "s3",
+        projectId: "print-it-right",
+        tracking: { audience: "Bakım Mühendisleri" },
+        responses: { qb1: { transcript: "B1 yanıt" } },
+      },
+    ];
+
+    // Senaryo 1: Sadece "food-production-survey" anketini seçme
+    const exportSurveyId = "survey-a";
+    const filteredBySurvey = allSessions.filter((s) => {
+      const matched = mockSurveys.find(
+        (sv) => sv.id === exportSurveyId || sv.slug === exportSurveyId
+      );
+      return (
+        s.projectId === exportSurveyId ||
+        (matched && (s.projectId === matched.id || s.projectId === matched.slug))
+      );
+    });
+
+    assert.strictEqual(filteredBySurvey.length, 2);
+    assert.deepStrictEqual(filteredBySurvey.map((s) => s.id), ["s1", "s2"]);
+
+    // Senaryo 2: Hem anket hem de hedef kitle "Bakım Mühendisleri" seçme
+    const exportAudience = "Bakım Mühendisleri";
+    const filteredBySurveyAndAudience = filteredBySurvey.filter(
+      (s) => (s.tracking?.audience?.trim() || "Genel") === exportAudience
+    );
+
+    assert.strictEqual(filteredBySurveyAndAudience.length, 1);
+    assert.strictEqual(filteredBySurveyAndAudience[0].id, "s1");
+
+    // Senaryo 3: Belirli anket seçildiğinde başlığa gerçek soru adının eklenmesi
+    const matchedSurvey = mockSurveys.find((sv) => sv.id === exportSurveyId);
+    const customHeaders = matchedSurvey.questions.map(
+      (q, i) => `Soru ${i + 1} (${q.title}): Deşifre`
+    );
+
+    assert.deepStrictEqual(customHeaders, [
+      "Soru 1 (Duruş Maliyeti): Deşifre",
+      "Soru 2 (Parça Süresi): Deşifre",
+    ]);
+  });
 });
 
 describe("Admin Survey Question Guard & Template Validation", () => {
