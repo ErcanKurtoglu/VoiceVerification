@@ -9,6 +9,9 @@ import {
   Lock,
   Clock,
   Fingerprint,
+  Mail,
+  Scale,
+  Sparkles,
 } from "lucide-react";
 import { useLanguage } from "@/context/LanguageContext";
 
@@ -23,47 +26,59 @@ const MODAL_CONTENT = {
     title: "Hukuki Şartlar & Veri Güvenliği",
     subtitle: "VoiceVerification AI • Print It Right Araştırma Çerçevesi",
     closeAria: "Kapat",
+    contactEmail: "ercannkurtogl@hotmail.com",
     tabs: {
-      kvkk: "KVKK & GDPR Metni",
+      kvkk: "KVKK & GDPR Aydınlatma",
       biometric: "Biyometrik Güvence",
-      terms: "Kullanıcı Şartları (Terms)",
+      terms: "Katılım Şartları (Terms)",
     },
     kvkk: {
       callout:
-        "Bu araştırma, 6698 sayılı KVKK ve AB Genel Veri Koruma Tüzüğü (GDPR) kapsamında gıda sanayiinde plansız duruş maliyetleri ve 3B parça ihtiyaçlarını doğrulamak üzere yürütülmektedir.",
-      sec1Title: "1. Veri Sorumlusu ve İşleme Amaçları",
+        "Bu aydınlatma metni; 6698 sayılı Kişisel Verilerin Korunması Kanunu (KVKK) m. 10 ve AB Genel Veri Koruma Tüzüğü (GDPR) m. 13-14 uyarınca, veri sorumlusu sıfatıyla katılımcıları bilgilendirmek ve şeffaflığı sağlamak amacıyla hazırlanmıştır.",
+      sec1Title: "1. Veri Sorumlusu ve İletişim Kanalları",
       sec1Text:
-        "İlettiğiniz ad-soyad, e-posta, şirket ve unvan verileri katılımcı profilini doğrulamak ve araştırma sonuç raporunu tarafınıza iletmek amacıyla işlenir. Yanıtlarınız sektörel istatistiklere dönüştürülür.",
-      sec2Title: "2. Ses Kaydının Deşifresi ve NLP Analizi",
+        "Veri sorumlusu Ercan Kurtoğlu / VoiceVerification AI Ar-Ge Projesi'dir. KVKK ve GDPR kapsamındaki tüm soru, bilgi edinme, silme veya rıza geri çekme talepleriniz için doğrudan veri sorumlusuna başvurabilirsiniz:",
+      sec2Title: "2. İşlenen Kişisel Veri Kategorileri & Toplama Yöntemi",
       sec2Text:
-        "Kaydettiğiniz ses, gelişmiş yapay zeka (AI) ve konuşma tanıma (STT) modelleri üzerinden yalnızca yazılı metne dönüştürülmekte ve içerik analizi yapılmaktadır. Sesiniz asla pazarlama verisi olarak 3. kişilere satılmaz.",
-      sec3Title: "3. Veri Saklama ve 30 Günlük Otomatik İmha",
+        "Araştırma kapsamında; Kimlik (Ad-Soyad), İletişim (E-posta), Mesleki Deneyim (Çalışılan Şirket/Tesis, Görev/Unvan), İşlem Güvenliği (Oturum ID, zaman damgası) ve İşitsel/İçeriksel Veri (Ses kayıtları ve transkriptler) toplanmaktadır. Veriler, anket web arayüzü üzerinden elektronik ortamda ve tamamen katılımcının kendi iradesiyle iletilmektedir.",
+      sec3Title: "3. Veri İşleme Amaçları ve Hukuki Sebepleri",
       sec3Text:
-        "Ham ses dosyaları deşifre ve onaylama süreci tamamlandıktan sonra en geç 30 gün içinde sunuculardan kalıcı olarak silinir. Raporlarda yalnızca tamamen anonimleştirilmiş içgörüler kullanılır.",
-      sec4Title: "4. KVKK Madde 11 Kapsamındaki Haklarınız",
+        "Toplanan veriler; gıda sanayiinde plansız duruş maliyetleri ve 3B parça ihtiyaçlarının doğrulanması, katılımcı profilinin teyidi ve araştırma sonuç raporunun iletilmesi amacıyla işlenir. Hukuki sebepler: KVKK m. 5/1 ve GDPR m. 6(1)(a) uyarınca Açık Rıza; ayrıca araştırma metodolojisi gereğince KVKK m. 5/2-f ve GDPR m. 6(1)(f) uyarınca meşru menfaattir.",
+      sec4Title: "4. Yapay Zeka (AI) İşleme ve Veri Aktarımı Sınırları",
       sec4Text:
-        "Dilediğiniz an verilerinizin silinmesini, anonim hale getirilmesini veya açık rızanızın geri çekilmesini talep edebilirsiniz. Başvurularınız için:",
+        "Ses kayıtlarınız, gelişmiş konuşma tanıma (Speech-to-Text) ve yapay zeka modelleri üzerinden yalnızca yazılı metne dönüştürülmekte ve nitel içerik analizi yapılmaktadır. Verileriniz kesinlikle reklam/pazarlama amacıyla 3. şahıslara veya veri simsarlarına satılmaz, devredilmez.",
+      sec5Title: "5. 30 Günlük Otomatik İmha Politikası",
+      sec5Text:
+        "Ham ses dosyaları, deşifre ve onaylama süreçleri tamamlandıktan sonra en geç 30 gün içinde sunuculardan kalıcı ve geri döndürülemez şekilde silinir. Nihai analiz ve araştırma raporlarında yalnızca tamamen anonimleştirilmiş içgörüler ve sektörel istatistikler saklanır.",
+      sec6Title: "6. İlgili Kişi Hakları (KVKK m. 11 & GDPR m. 15-22)",
+      sec6Text:
+        "Dilediğiniz an verilerinizin işlenip işlenmediğini öğrenme, kopyasını talep etme, düzeltilmesini isteme, silinmesini veya açık rızanızın geri çekilmesini talep etme hakkına sahipsiniz. Başvurularınız için:",
     },
     biometric: {
       callout:
-        "Yasal Taahhüt: Sesiniz hiçbir zaman akustik biyometrik kimlik doğrulama, ses izi eşleme veya ses klonlama amacıyla işlenmez.",
-      sec1Title: "Biyometrik Veri Sınırı Nedir?",
+        "Yasal & Teknik Taahhüt: Sesiniz hiçbir koşulda biyometrik kimlik tanıma, ses parmak izi eşleme (voiceprint) veya ses klonlama amacıyla işlenmez.",
+      sec1Title: "Biyometrik Veri Sınırı Nedir? (EDPB & KVKK İlke Kararları)",
       sec1Text:
-        "KVKK m.6 kapsamında biyometrik veriler özel niteliklidir. Platformumuz, ses dalgalarınızdan biyometrik kimlik veya ses parmak izi (voiceprint) çıkarımı yapmaz. Ses yalnızca \"Speech-to-Text\" aracılığıyla metin karakterlerine dönüştürülür.",
-      sec2Title: "Kullanıcıya Tam Denetim Güvencesi",
+        "KVKK m. 6 ve GDPR m. 9 uyarınca biyometrik veriler özel niteliklidir. Avrupa Veri Koruma Kurulu (EDPB) yönergeleri uyarınca; ses kaydı bir kişinin akustik kimliğini tekil olarak doğrulamak amacıyla işlenmediği sürece özel nitelikli biyometrik veri oluşturmaz. Platformumuz sesi yalnızca konuşulan kelimeleri metne döken bir girdi kanalı (Speech-to-Text) olarak kullanır; akustik ses izi veya frekans şablonu çıkarmaz.",
+      sec2Title: "Katılımcıya Tam Kontrol & İnceleme Güvencesi",
       sec2Text:
-        "Kaydı tamamladığınızda ses otomatik gönderilmez. Dinleyebilir, silebilir, yeniden kaydedebilir veya dilediğiniz zaman tek tıkla \"Yazarak Yanıtla\" sekmesine geçebilirsiniz.",
+        "Kaydı durdurduğunuzda ses otomatik olarak sisteme gönderilmez. Göndermeden önce sesinizi baştan sona dinleyebilir, tek tuşla silebilir veya yeniden kaydedebilirsiniz.",
+      sec3Title: "Yazılı Yanıt Seçeneği ile Tam Eşitlik (Text Parity)",
+      sec3Text:
+        "Sesli yanıt vermek zorunlu değildir. Gürültülü ortamlarda veya kişisel tercihiniz doğrultusunda, her sorunun altındaki 'Yazarak Yanıtla' sekmesine geçerek düşüncelerinizi doğrudan klavye ile iletebilirsiniz.",
     },
     terms: {
-      sec1Title: "1. Araştırma Niteliği & Ön-Ticari Kapsam",
+      callout:
+        "Bu koşullar, VoiceVerification AI araştırma platformuna katılım prensiplerini, gizlilik sınırlarını ve fikri mülkiyet çerçevesini belirler.",
+      sec1Title: "1. Araştırma Niteliği & Ön-Ticari Kapsam (Customer Discovery)",
       sec1Text:
-        "Bu çalışma gıdaya uygun 3B parça üretimi hipotezlerini doğrulamak için tasarlanmıştır. Görüşmedeki sorular veya AI asistan yanıtları bağlayıcı ticari teklif veya nihai mühendislik garantisi teşkil etmez.",
-      sec2Title: "2. Ticari Sırlar & Fikri Mülkiyet",
+        "Bu çalışma, A-Side Challenge 2026 kapsamında gıda sanayiinde parça arızaları ve temin gecikmelerine ilişkin saha deneyimlerini doğrulamak amacıyla yürütülen ön-ticari bir Ar-Ge ve pazar keşif çalışmasıdır. Anketteki sorular ve AI asistan açıklamaları; bağlayıcı ticari teklif, kesin mühendislik/hijyen taahhüdü veya malzeme seçim garantisi teşkil etmez.",
+      sec2Title: "2. Fabrika Gizliliği, Ticari Sırlar & Fikri Mülkiyet",
       sec2Text:
-        "Katılımcının fabrikasındaki tescilli hat tasarımları korunur. Raporlamalar yalnızca agregasyon yapılarak toplu içgörü şeklinde sunulur; fabrika isimleri gizlenir.",
-      sec3Title: "3. Bot & Spam Koruması (Anti-Garbage)",
+        "Katılımcıların tesislerine, hat mimarilerine veya özel işletme prosedürlerine ait bilgiler gizli tutulur. Katılımcıdan tescilli CAD çizimleri veya gizli şirket belgeleri talep edilmez. Araştırma çıktıları sektör geneline yönelik anonimleştirilmiş kıyaslama (benchmark) raporları olarak sunulur; fabrika ve şahıs isimleri yayınlanmaz.",
+      sec3Title: "3. Veri Dürüstlüğü ve Anti-Garbage Koruması",
       sec3Text:
-        "Sistem bot aktivitelerini, ses kalitesizliğini (sessizlik, parazit, honeypot) otomatik engeller. Katılımcı gerçek tecrübelerini aktarmayı taahhüt eder.",
+        "Katılımcı, yanıtlarında gerçek ve bizzat gözlemlediği saha tecrübelerini aktarmayı taahhüt eder. Sistem; bot aktivitelerini, boş/sessiz kayıtları, anlaşılmayan parazitleri ve honeypot girişimlerini filtreleyen çok katmanlı Anti-Garbage motoruyla korunmaktadır. Gerçek dışı girdiler analitik raporlardan elenir.",
     },
     footerRights: "VoiceVerification AI © 2026 • Tüm Hakları Saklıdır",
     footerBtn: "Okudum, Anladım",
@@ -72,47 +87,59 @@ const MODAL_CONTENT = {
     title: "Legal Terms & Data Security",
     subtitle: "VoiceVerification AI • Print It Right Research Framework",
     closeAria: "Close",
+    contactEmail: "ercannkurtogl@hotmail.com",
     tabs: {
-      kvkk: "GDPR & Privacy Policy",
+      kvkk: "GDPR & KVKK Notice",
       biometric: "Biometric Protection",
-      terms: "Terms of Use",
+      terms: "Terms of Participation",
     },
     kvkk: {
       callout:
-        "This research is conducted under the EU General Data Protection Regulation (GDPR) and Law No. 6698 (KVKK) to validate unplanned downtime costs and 3D part requirements in industrial manufacturing.",
-      sec1Title: "1. Data Controller & Processing Purposes",
+        "This Privacy Notice is provided in accordance with Articles 13 & 14 of the EU General Data Protection Regulation (GDPR) and Article 10 of Turkish Law No. 6698 (KVKK) to ensure full transparency regarding data controller practices.",
+      sec1Title: "1. Data Controller & Direct Contact Channel",
       sec1Text:
-        "Your full name, email, company, and job title are processed to verify participant profiles and share aggregate research findings. Your responses are converted into sectoral statistics.",
-      sec2Title: "2. Audio Transcription & NLP Analysis",
+        "The data controller is Ercan Kurtoğlu / VoiceVerification AI R&D Project. For any questions, data access requests, or consent withdrawal under GDPR and KVKK, please contact directly:",
+      sec2Title: "2. Categories of Personal Data & Collection Method",
       sec2Text:
-        "Your recorded audio is converted into text via Speech-to-Text (STT) models and analyzed for qualitative insights. Your voice is never sold or used for marketing profiling.",
-      sec3Title: "3. Data Retention & 30-Day Automated Deletion",
+        "We collect: Identity Data (Full Name), Contact Data (Email Address), Professional Background (Company/Plant, Job Title/Role), Technical Security Data (Session ID, timestamp), and Audio/Verbatim Data (Voice recordings and Speech-to-Text transcripts). All data is voluntarily provided by participants through our interactive web questionnaire.",
+      sec3Title: "3. Purposes and Legal Bases for Processing",
       sec3Text:
-        "Raw audio files are permanently purged from servers within 30 days after transcription and verification. Benchmark reports contain only completely anonymized insights.",
-      sec4Title: "4. Your Rights Under GDPR & Data Protection Regulations",
+        "Data is processed to validate downtime costs and 3D food-safe part challenges in manufacturing, authenticate participant eligibility, and deliver aggregated research findings. Legal bases: Explicit Consent pursuant to GDPR Art. 6(1)(a) & KVKK Art. 5/1, and Legitimate Interests pursuant to GDPR Art. 6(1)(f) & KVKK Art. 5/2-f.",
+      sec4Title: "4. AI Processing & Third-Party Disclosure Limits",
       sec4Text:
-        "You may request the deletion, anonymization, or withdrawal of consent for your data at any time. For requests, please contact:",
+        "Audio recordings are processed via Speech-to-Text (STT) and AI models exclusively to produce verbatim transcripts and qualitative thematic summaries. Your data is strictly never sold, rented, or transferred to commercial data brokers or advertisers.",
+      sec5Title: "5. 30-Day Automated Audio Deletion Policy",
+      sec5Text:
+        "Raw audio recordings are permanently and irreversibly purged from our servers within 30 days of transcription and verification. Final research summaries and benchmark datasets contain exclusively anonymized, aggregated insights.",
+      sec6Title: "6. Data Subject Rights (GDPR Articles 15-22 & KVKK Art. 11)",
+      sec6Text:
+        "You have the right to access, rectify, restrict, erase ('Right to be Forgotten'), or withdraw your consent at any time without adverse consequences. For requests, please contact:",
     },
     biometric: {
       callout:
-        "Legal Guarantee: Your voice is never processed for acoustic biometric identification, voiceprint matching, or voice cloning.",
-      sec1Title: "What Is the Biometric Data Boundary?",
+        "Legal & Technical Guarantee: Your voice is never processed for acoustic biometric identification, voiceprint profiling, or synthetic voice cloning.",
+      sec1Title: "Biometric Data Boundary (EDPB & Regulatory Framework)",
       sec1Text:
-        "Biometric data is classified as special category data under GDPR Article 9. Our platform does not extract biometric identifiers or voiceprints from your speech. Voice is strictly converted into text characters via Speech-to-Text.",
-      sec2Title: "Full Participant Control Guarantee",
+        "Under GDPR Article 9 and KVKK Article 6, biometric data constitutes special category data. According to European Data Protection Board (EDPB) Guidelines, voice recordings do not constitute biometric data unless processed through specific technical means enabling unique identification (such as acoustic voiceprints). We use voice solely as a Speech-to-Text input medium; no acoustic voiceprint or biometric template is ever generated.",
+      sec2Title: "Full Participant Control & Review Guarantee",
       sec2Text:
-        "Recordings are never automatically submitted. You can review, delete, re-record, or switch to the 'Respond in Writing' tab at any time.",
+        "Recordings are never submitted automatically. You can listen back, review, delete, or re-record your answer before finalizing submission.",
+      sec3Title: "Equal Text Alternative (Text Parity)",
+      sec3Text:
+        "Voice recording is never compulsory. If you are in a noisy plant environment or prefer writing, simply switch to the 'Respond in Writing' tab on any question.",
     },
     terms: {
-      sec1Title: "1. Research Nature & Pre-Commercial Scope",
+      callout:
+        "These terms outline the pre-commercial research scope, confidentiality safeguards, and data integrity principles of VoiceVerification AI.",
+      sec1Title: "1. Research Nature & Pre-Commercial Customer Discovery",
       sec1Text:
-        "This study is designed for early-stage customer discovery and market need validation. Questions or AI assistant clarifications do not constitute binding commercial offers or final engineering warranties.",
-      sec2Title: "2. Trade Secrets & Intellectual Property",
+        "This platform is an exploratory R&D and market-need validation initiative conducted under A-Side Challenge 2026. Questionnaire items and AI copilot clarifications do not constitute binding commercial offers, warranty statements, or official engineering safety certifications.",
+      sec2Title: "2. Plant Confidentiality, Trade Secrets & IP",
       sec2Text:
-        "Proprietary factory designs and confidential operating procedures remain strictly protected. Insights are published solely in aggregate form, and individual enterprise identities remain confidential.",
-      sec3Title: "3. Bot & Spam Protection (Anti-Garbage)",
+        "Proprietary manufacturing line designs and sensitive operational procedures remain strictly protected. Participants are never asked to submit confidential CAD models or trade secrets. Benchmark reports are published strictly in aggregated form with plant and participant identities redacted.",
+      sec3Title: "3. Data Integrity & Anti-Garbage Undertaking",
       sec3Text:
-        "The platform automatically detects and filters automated bot activity, silence, and low audio fidelity. Participants agree to share genuine professional insights.",
+        "Participants undertake to share genuine, firsthand operational experiences. The platform employs anti-garbage protections against bots, silent audio, and synthetic submissions. Ineligible or noise responses are isolated from analytical findings.",
     },
     footerRights: "VoiceVerification AI © 2026 • All Rights Reserved",
     footerBtn: "I Understand & Acknowledge",
@@ -151,7 +178,7 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
             aria-label={c.closeAria}
           >
             <X className="w-5 h-5" />
@@ -163,7 +190,7 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab("kvkk")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTab === "kvkk"
                 ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
                 : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
@@ -176,7 +203,7 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab("biometric")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTab === "biometric"
                 ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
                 : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
@@ -189,7 +216,7 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
           <button
             type="button"
             onClick={() => setActiveTab("terms")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1.5 transition-all cursor-pointer ${
               activeTab === "terms"
                 ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
                 : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/50"
@@ -210,17 +237,23 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
 
               <div className="space-y-2">
                 <h4 className="font-semibold text-white flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+                  <Shield className="w-4 h-4 text-indigo-400" />
                   {c.kvkk.sec1Title}
                 </h4>
                 <p className="text-slate-400 pl-6">
-                  {c.kvkk.sec1Text}
+                  {c.kvkk.sec1Text}{" "}
+                  <a
+                    href={`mailto:${c.contactEmail}`}
+                    className="text-indigo-300 font-mono underline hover:text-indigo-200"
+                  >
+                    {c.contactEmail}
+                  </a>
                 </p>
               </div>
 
               <div className="space-y-2">
                 <h4 className="font-semibold text-white flex items-center gap-2">
-                  <Lock className="w-4 h-4 text-emerald-400" />
+                  <CheckCircle2 className="w-4 h-4 text-indigo-400" />
                   {c.kvkk.sec2Title}
                 </h4>
                 <p className="text-slate-400 pl-6">
@@ -230,7 +263,7 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
 
               <div className="space-y-2">
                 <h4 className="font-semibold text-white flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-amber-400" />
+                  <Lock className="w-4 h-4 text-emerald-400" />
                   {c.kvkk.sec3Title}
                 </h4>
                 <p className="text-slate-400 pl-6">
@@ -240,11 +273,37 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
 
               <div className="space-y-2">
                 <h4 className="font-semibold text-white flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+                  <Sparkles className="w-4 h-4 text-indigo-400" />
                   {c.kvkk.sec4Title}
                 </h4>
                 <p className="text-slate-400 pl-6">
-                  {c.kvkk.sec4Text} <code className="text-indigo-300">privacy@voiceverify.ai</code>
+                  {c.kvkk.sec4Text}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-semibold text-white flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-amber-400" />
+                  {c.kvkk.sec5Title}
+                </h4>
+                <p className="text-slate-400 pl-6">
+                  {c.kvkk.sec5Text}
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-semibold text-white flex items-center gap-2">
+                  <Scale className="w-4 h-4 text-indigo-400" />
+                  {c.kvkk.sec6Title}
+                </h4>
+                <p className="text-slate-400 pl-6">
+                  {c.kvkk.sec6Text}{" "}
+                  <a
+                    href={`mailto:${c.contactEmail}`}
+                    className="text-indigo-300 font-mono underline hover:text-indigo-200"
+                  >
+                    {c.contactEmail}
+                  </a>
                 </p>
               </div>
             </div>
@@ -275,11 +334,25 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
                   {c.biometric.sec2Text}
                 </p>
               </div>
+
+              <div className="space-y-2">
+                <h4 className="font-semibold text-white flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+                  {c.biometric.sec3Title}
+                </h4>
+                <p className="text-slate-400 pl-6">
+                  {c.biometric.sec3Text}
+                </p>
+              </div>
             </div>
           )}
 
           {activeTab === "terms" && (
             <div className="space-y-4 animate-fadeIn">
+              <div className="p-3.5 rounded-2xl bg-indigo-950/40 border border-indigo-500/20 text-indigo-200 text-[11px] leading-relaxed">
+                {c.terms.callout}
+              </div>
+
               <div className="space-y-2">
                 <h4 className="font-semibold text-white flex items-center gap-2">
                   <FileText className="w-4 h-4 text-indigo-400" />

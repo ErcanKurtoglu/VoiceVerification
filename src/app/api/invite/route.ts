@@ -113,6 +113,7 @@ export async function POST(req: NextRequest) {
         email: cleanEmail,
         company: cleanCompany,
         title: cleanTitle,
+        consentGiven: true,
       },
       {
         uid,

@@ -10,6 +10,7 @@ export interface InvitePayload {
   title?: string;
   ref?: string;
   audience?: string; // Hedef Kitle / Segment (örn: "Bakım Mühendisleri", "Satın Alma")
+  consentGiven?: boolean;
 }
 
 export function areSurveyIdsMatching(id1?: string, id2?: string): boolean {
@@ -57,6 +58,7 @@ export function generateInviteToken(
     company: participant?.company,
     title: participant?.title,
     audience: audience || tracking?.audience,
+    consentGiven: participant?.consentGiven ?? (Boolean(participant?.fullName && participant?.email)),
   };
 
   const jsonStr = JSON.stringify(payload);
@@ -184,6 +186,7 @@ export function evaluateSurveyAccess(
         email: payload.email,
         company: payload.company,
         title: payload.title,
+        consentGiven: payload.consentGiven ?? (Boolean(payload.name && payload.email)),
       },
       tracking: {
         uid: payload.uid,
