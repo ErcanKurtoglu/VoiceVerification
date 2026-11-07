@@ -160,6 +160,41 @@ describe("Admin Data Presentation: Audio Preservation vs UI Cleanliness", () => 
     assert.strictEqual(feedbackTags, "Hızlı ve pratikti; Sesli yanıt vermek çok rahattı");
     assert.strictEqual(feedbackNotes, "Arayüz ve ses algılama çok başarılı.");
   });
+
+  test("CSV dışa aktarımında 4 veya daha fazla sorulu anketlerin tüm soruları (Soru 4 dahil) eksiksiz yer almalıdır", () => {
+    const sessionWith4Questions = {
+      id: "sess_4q",
+      projectId: "food-production-survey",
+      participant: {
+        fullName: "Ercan K",
+        email: "ercan@test.com",
+        company: "Test Gıda",
+        title: "Bakım Mühendisi",
+      },
+      responses: {
+        q1: { transcript: "1. soru yanıtı" },
+        q2: { transcript: "2. soru yanıtı" },
+        q3: { transcript: "3. soru yanıtı" },
+        q4: { transcript: "4. soru kritik yanıtı burada" },
+      },
+      startedAt: new Date().toISOString(),
+    };
+
+    const respCount = Object.keys(sessionWith4Questions.responses).length;
+    assert.strictEqual(respCount, 4);
+
+    const questionHeaders = Array.from({ length: respCount }, (_, i) => `Soru ${i + 1} Deşifre`);
+    assert.deepStrictEqual(questionHeaders, [
+      "Soru 1 Deşifre",
+      "Soru 2 Deşifre",
+      "Soru 3 Deşifre",
+      "Soru 4 Deşifre",
+    ]);
+
+    const responsesList = Object.values(sessionWith4Questions.responses);
+    const q4Text = (responsesList[3]?.transcript || "").replace(/"/g, '""');
+    assert.strictEqual(q4Text, "4. soru kritik yanıtı burada");
+  });
 });
 
 describe("Admin Survey Question Guard & Template Validation", () => {

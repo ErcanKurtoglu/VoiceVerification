@@ -1,6 +1,7 @@
 import { getSurveyByIdAsync, getAllSurveys } from "@/surveys";
 import { InterviewWizard } from "@/features/interview/components/InterviewWizard";
 import { AccessDeniedCard } from "@/features/interview/components/AccessDeniedCard";
+import { SurveyFooter } from "@/features/interview/components/SurveyFooter";
 import { evaluateSurveyAccess } from "@/services/invitation/token";
 import Link from "next/link";
 import { ShieldCheck, Sparkles, BarChart3, Loader2 } from "lucide-react";
@@ -107,15 +108,7 @@ export default function SurveyInstancePage({
       </div>
 
       {/* Alt Footer & Güven Rozetleri */}
-      <footer className="w-full max-w-6xl mx-auto px-6 py-6 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-slate-500 z-10">
-        <div className="flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-emerald-500" />
-          <span>KVKK & GDPR Uyumlu • Süreli & Güvenli Erişim Mimarisi</span>
-        </div>
-        <div>
-          <span>Uçtan Uca Asenkron AI Doğrulama Platformu</span>
-        </div>
-      </footer>
+      <SurveyFooter />
     </main>
   );
 }

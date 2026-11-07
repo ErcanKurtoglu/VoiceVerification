@@ -675,9 +675,27 @@ function AdminDashboardContent() {
     (s) => !Object.values(s.responses).some((r) => r.isJunk)
   ).length;
 
-  // Hafif CSV Dışa Aktarma
+  // Dinamik Soru Sayılı Kapsamlı CSV Dışa Aktarma
   const exportToCSV = () => {
     if (sessions.length === 0) return;
+
+    // Oturumlarda veya anketlerde yer alan maksimum soru sayısını dinamik tespit et
+    let maxQuestions = 3;
+    sessions.forEach((s) => {
+      const respCount = Object.keys(s.responses || {}).length;
+      if (respCount > maxQuestions) maxQuestions = respCount;
+    });
+
+    surveysList.forEach((sv: SurveyConfig) => {
+      if (Array.isArray(sv.questions) && sv.questions.length > maxQuestions) {
+        maxQuestions = sv.questions.length;
+      }
+    });
+
+    const questionHeaders = Array.from(
+      { length: maxQuestions },
+      (_, i) => `Soru ${i + 1} Deşifre`
+    );
 
     const headers = [
       "Oturum ID",
@@ -692,16 +710,30 @@ function AdminDashboardContent() {
       "Beğenilen Özellikler (Etiketler)",
       "Geri Bildirim Notu / Önerisi",
       "Tarih",
-      "Soru 1 Deşifre",
-      "Soru 2 Deşifre",
-      "Soru 3 Deşifre",
+      ...questionHeaders,
     ];
 
     const rows = sessions.map((s) => {
-      const responsesList = Object.values(s.responses);
-      const q1 = (responsesList[0]?.transcript || responsesList[0]?.textResponse || "").replace(/"/g, '""');
-      const q2 = (responsesList[1]?.transcript || responsesList[1]?.textResponse || "").replace(/"/g, '""');
-      const q3 = (responsesList[2]?.transcript || responsesList[2]?.textResponse || "").replace(/"/g, '""');
+      const matchedSurvey = surveysList.find(
+        (sv: SurveyConfig) => sv.id === s.projectId || sv.slug === s.projectId
+      );
+      const responsesList = Object.values(s.responses || {});
+
+      const questionCols = Array.from({ length: maxQuestions }, (_, i) => {
+        let resp: any = undefined;
+        // Önce anketin sorularındaki sıralı ID üzerinden yanıtı ara
+        if (matchedSurvey?.questions && matchedSurvey.questions[i]) {
+          const qId = matchedSurvey.questions[i].id;
+          resp = s.responses?.[qId];
+        }
+        // Bulunamazsa doğrudan liste indeksinden al
+        if (!resp) {
+          resp = responsesList[i];
+        }
+        const text = (resp?.transcript || resp?.textResponse || "").replace(/"/g, '""');
+        return `"${text}"`;
+      });
+
       const feedbackTags = (s.feedback?.tags || []).join("; ").replace(/"/g, '""');
       const feedbackNotes = (s.feedback?.notes || "").replace(/"/g, '""');
       const audienceSegment = (s.tracking?.audience || "").replace(/"/g, '""');
@@ -719,9 +751,7 @@ function AdminDashboardContent() {
         `"${feedbackTags || "Seçilmedi"}"`,
         `"${feedbackNotes || "İletilmedi"}"`,
         `"${new Date(s.startedAt).toLocaleString("tr-TR")}"`,
-        `"${q1}"`,
-        `"${q2}"`,
-        `"${q3}"`,
+        ...questionCols,
       ].join(",");
     });
 

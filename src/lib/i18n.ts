@@ -66,6 +66,8 @@ export interface Translations {
   footerTerms: string;
   footerBiometricPolicy: string;
   footerCopyright: string;
+  surveyFooterSecureAccess: string;
+  surveyFooterPlatformTitle: string;
 
   // Onboarding Form (Survey Entrance)
   onboardingTitle: string;
@@ -228,6 +230,8 @@ export const translations: Record<Language, Translations> = {
     footerTerms: "Kullanım Şartları",
     footerBiometricPolicy: "Biyometrik Güvence",
     footerCopyright: "VoiceVerify AI © 2026 • Kurumsal Asenkron Doğrulama",
+    surveyFooterSecureAccess: "KVKK & GDPR Uyumlu • Süreli & Güvenli Erişim Mimarisi",
+    surveyFooterPlatformTitle: "Uçtan Uca Asenkron AI Doğrulama Platformu",
 
     onboardingTitle: "Araştırmaya Hoş Geldiniz",
     onboardingEstimatedTime: "Tahmini Süre: 3 Dakika",
@@ -401,6 +405,8 @@ export const translations: Record<Language, Translations> = {
     footerTerms: "Terms of Service",
     footerBiometricPolicy: "Biometric Policy",
     footerCopyright: "VoiceVerify AI © 2026 • Enterprise Asynchronous Validation",
+    surveyFooterSecureAccess: "GDPR & KVKK Compliant • Tokenized & Secure Access Architecture",
+    surveyFooterPlatformTitle: "End-to-End Asynchronous AI Verification Platform",
 
     onboardingTitle: "Welcome to the Research Study",
     onboardingEstimatedTime: "Estimated Duration: 3 Minutes",
