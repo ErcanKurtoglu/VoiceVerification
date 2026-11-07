@@ -6,6 +6,7 @@ export { PRINT_IT_RIGHT_SURVEY };
 
 export const SURVEY_REGISTRY: Record<string, SurveyConfig> = {
   "print-it-right": PRINT_IT_RIGHT_SURVEY,
+  "print-it-right-food-safe-parts": PRINT_IT_RIGHT_SURVEY,
   "food-safe-parts": PRINT_IT_RIGHT_SURVEY,
 };
 

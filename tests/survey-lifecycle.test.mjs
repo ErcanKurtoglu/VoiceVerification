@@ -7,8 +7,8 @@ describe("Survey Lifecycle: Configuration & Question Integrity", () => {
     assert.strictEqual(PRINT_IT_RIGHT_SURVEY.id, "print-it-right");
     assert.strictEqual(typeof PRINT_IT_RIGHT_SURVEY.title, "string");
     assert.strictEqual(PRINT_IT_RIGHT_SURVEY.title.length > 5, true);
-    assert.strictEqual(PRINT_IT_RIGHT_SURVEY.questions.length, 3);
-    assert.strictEqual(PRINT_IT_RIGHT_SURVEY.estimatedMinutes, 3);
+    assert.strictEqual(PRINT_IT_RIGHT_SURVEY.questions.length, 4);
+    assert.strictEqual(PRINT_IT_RIGHT_SURVEY.estimatedMinutes, 6);
     assert.strictEqual(typeof PRINT_IT_RIGHT_SURVEY.aiContext, "string");
   });
 

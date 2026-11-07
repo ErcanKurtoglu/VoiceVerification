@@ -80,25 +80,25 @@ describe("Regression: Final Question to Feedback Transition & Draft Resilience",
     assert.strictEqual(res2.nextIndex, 2);
   });
 
-  test("3. (son) soru yanıtlandığında doğrudan 'feedback' adımına geçmeli ve taslağı mühürlemelidir", () => {
-    const res3 = simulateQuestionSubmit({
-      currentQuestionIndex: 2, // 3. soru (index 2)
-      responses: { q1: {}, q2: {} },
-      newResponse: { questionId: "q3", mode: "text", textResponse: "mehmet deneme 3" },
+  test("4. (son) soru yanıtlandığında doğrudan 'feedback' adımına geçmeli ve taslağı mühürlemelidir", () => {
+    const resFinal = simulateQuestionSubmit({
+      currentQuestionIndex: 3, // 4. soru (index 3 - son soru)
+      responses: { q1: {}, q2: {}, q3: {} },
+      newResponse: { questionId: "q4", mode: "text", textResponse: "mehmet deneme 4" },
       participant: { fullName: "Mehmet" },
     });
 
-    assert.strictEqual(res3.nextStep, "feedback");
-    assert.strictEqual(res3.sessionDraft.step, "feedback");
-    assert.strictEqual(res3.sessionDraft.currentQuestionIndex, 2);
+    assert.strictEqual(resFinal.nextStep, "feedback");
+    assert.strictEqual(resFinal.sessionDraft.step, "feedback");
+    assert.strictEqual(resFinal.sessionDraft.currentQuestionIndex, 3);
   });
 
-  test("Taslak geri yükleme (rehydration) 'feedback' adımındaki kullanıcıyı 3. soruya geri döndürmemelidir", () => {
+  test("Taslak geri yükleme (rehydration) 'feedback' adımındaki kullanıcıyı son soruya geri döndürmemelidir", () => {
     const savedDraft = {
       projectId: "print-it-right",
       participant: { fullName: "Mehmet", email: "m@test.com" },
       step: "feedback",
-      currentQuestionIndex: 2,
+      currentQuestionIndex: 3,
       status: "in_progress",
     };
 
