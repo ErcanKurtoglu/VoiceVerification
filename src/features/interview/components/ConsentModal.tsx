@@ -26,7 +26,7 @@ const MODAL_CONTENT = {
     title: "Hukuki Şartlar & Veri Güvenliği",
     subtitle: "VoiceVerification AI • Print It Right Araştırma Çerçevesi",
     closeAria: "Kapat",
-    contactEmail: "voiceverifyai@gmail.com",
+    contactEmail: "voiceverifyapp@gmail.com",
     tabs: {
       kvkk: "KVKK & GDPR Aydınlatma",
       biometric: "Biyometrik Güvence",
@@ -87,7 +87,7 @@ const MODAL_CONTENT = {
     title: "Legal Terms & Data Security",
     subtitle: "VoiceVerification AI • Print It Right Research Framework",
     closeAria: "Close",
-    contactEmail: "voiceverifyai@gmail.com",
+    contactEmail: "voiceverifyapp@gmail.com",
     tabs: {
       kvkk: "GDPR & KVKK Notice",
       biometric: "Biometric Protection",

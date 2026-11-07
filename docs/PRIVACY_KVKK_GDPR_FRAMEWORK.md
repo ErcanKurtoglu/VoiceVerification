@@ -80,4 +80,4 @@ Her katılımcı, veri sorumlusuna başvurarak aşağıdaki haklarını kullanab
 6. KVKK m.7 çerçevesinde silinmesini veya yok edilmesini talep etme,
 7. Ses kaydının derhal silinmesini ve araştırmadan çıkarılmasını isteme (Rızayı Geri Çekme).
 
-**Başvuru İletişim Kanalı:** Katılımcılar haklarını kullanmak için kayıt oldukları e-posta adresinden `privacy@voiceverify.ai` (veya proje iletişim yetkilisi) adresine talep iletebilirler. Talepler en geç 30 gün içinde ücretsiz sonuçlandırılır.
+**Başvuru İletişim Kanalı:** Katılımcılar haklarını kullanmak için kayıt oldukları e-posta adresinden `voiceverifyapp@gmail.com` (veya proje iletişim yetkilisi) adresine talep iletebilirler. Talepler en geç 30 gün içinde ücretsiz sonuçlandırılır.
