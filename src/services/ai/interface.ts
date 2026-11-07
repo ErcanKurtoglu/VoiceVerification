@@ -25,6 +25,8 @@ export interface GeneratedSurveyResult {
   taglineEn?: string;
   description: string;
   descriptionEn?: string;
+  caseAnchor?: string;
+  caseAnchorEn?: string;
   aiContext: string;
   aiContextEn?: string;
   questions: GeneratedQuestion[];

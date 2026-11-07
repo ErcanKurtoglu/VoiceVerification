@@ -28,6 +28,8 @@ export async function GET() {
       taglineEn: row.tagline_en || row.taglineEn,
       description: row.description,
       descriptionEn: row.description_en || row.descriptionEn,
+      caseAnchor: row.case_anchor || row.caseAnchor || row.questions?.[0]?.caseAnchor,
+      caseAnchorEn: row.case_anchor_en || row.caseAnchorEn || row.questions?.[0]?.caseAnchorEn,
       targetAudience: row.target_audience || "",
       targetAudienceEn: row.target_audience_en || row.targetAudienceEn,
       estimatedMinutes: row.estimated_minutes || 3,
@@ -58,6 +60,8 @@ export async function POST(req: NextRequest) {
       title,
       tagline,
       description,
+      caseAnchor,
+      caseAnchorEn,
       targetAudience,
       estimatedMinutes = 3,
       aiContext,
@@ -70,6 +74,12 @@ export async function POST(req: NextRequest) {
         { error: "Başlık, açıklama, PIN kodu ve en az bir soru zorunludur." },
         { status: 400 }
       );
+    }
+
+    // Attach caseAnchor and caseAnchorEn to questions[0] for persistence
+    if (questions[0]) {
+      if (caseAnchor) questions[0].caseAnchor = caseAnchor;
+      if (caseAnchorEn) questions[0].caseAnchorEn = caseAnchorEn;
     }
 
     for (let i = 0; i < questions.length; i++) {

@@ -16,6 +16,7 @@ interface QuestionCardProps {
   totalQuestions: number;
   projectContext: string;
   participant?: ParticipantData | null;
+  caseAnchor?: string;
   initialResponse?: QuestionResponse;
   onResponseSubmit: (response: QuestionResponse) => void;
   onSaveDraft?: (response: QuestionResponse) => void;
@@ -29,6 +30,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   totalQuestions,
   projectContext,
   participant,
+  caseAnchor,
   initialResponse,
   onResponseSubmit,
   onSaveDraft,
@@ -159,7 +161,11 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           })()}
         </span>
         <span className="text-[11px] text-slate-400 font-medium">
-          {lang === "en" ? "• Case Focus: Specific part event" : "• Vaka Odağı: Belirlediğiniz somut parça"}
+          {caseAnchor
+            ? `• ${caseAnchor}`
+            : lang === "en"
+            ? "• Case Focus: Specific part event"
+            : "• Vaka Odağı: Belirlediğiniz somut parça"}
         </span>
       </div>
 

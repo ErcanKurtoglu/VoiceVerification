@@ -208,6 +208,8 @@ function AdminDashboardContent() {
   const [newSurveyTitle, setNewSurveyTitle] = useState("");
   const [newSurveyTagline, setNewSurveyTagline] = useState("");
   const [newSurveyDesc, setNewSurveyDesc] = useState("");
+  const [newSurveyCaseAnchor, setNewSurveyCaseAnchor] = useState("");
+  const [newSurveyCaseAnchorEn, setNewSurveyCaseAnchorEn] = useState("");
   const [newSurveyPin, setNewSurveyPin] = useState("");
   const [newSurveyAiContext, setNewSurveyAiContext] = useState("");
   const [newSurveyQuestions, setNewSurveyQuestions] = useState<
@@ -236,6 +238,8 @@ function AdminDashboardContent() {
     setNewSurveyTitle("");
     setNewSurveyTagline("");
     setNewSurveyDesc("");
+    setNewSurveyCaseAnchor("");
+    setNewSurveyCaseAnchorEn("");
     setNewSurveyPin("");
     setNewSurveyAiContext("");
     setNewSurveyQuestions([
@@ -458,6 +462,8 @@ function AdminDashboardContent() {
       setNewSurveyTitle(survey.title || "");
       setNewSurveyTagline(survey.tagline || "");
       setNewSurveyDesc(survey.description || "");
+      setNewSurveyCaseAnchor(survey.caseAnchor || "");
+      setNewSurveyCaseAnchorEn(survey.caseAnchorEn || "");
       setNewSurveyAiContext(survey.aiContext || aiPromptInput.trim());
 
       if (!newSurveyPin) {
@@ -540,6 +546,8 @@ function AdminDashboardContent() {
           title: newSurveyTitle.trim(),
           tagline: newSurveyTagline.trim() || "Doğrulama",
           description: newSurveyDesc.trim(),
+          caseAnchor: newSurveyCaseAnchor.trim() || undefined,
+          caseAnchorEn: newSurveyCaseAnchorEn.trim() || undefined,
           accessPin: newSurveyPin.trim().toUpperCase(),
           aiContext: newSurveyAiContext.trim() || newSurveyDesc.trim(),
           estimatedMinutes: calculatedEstimatedMinutes,
@@ -1540,12 +1548,32 @@ function AdminDashboardContent() {
                             </div>
 
                             <div className="space-y-4">
-                              {Object.entries(s.responses).map(([qId, resp], idx) => {
+                              {Object.entries(s.responses)
+                                .sort(([qIdA], [qIdB]) => {
+                                  const qA =
+                                    currentSurvey?.questions?.find((q) => q.id === qIdA) ||
+                                    PRINT_IT_RIGHT_SURVEY.questions.find((q) => q.id === qIdA);
+                                  const qB =
+                                    currentSurvey?.questions?.find((q) => q.id === qIdB) ||
+                                    PRINT_IT_RIGHT_SURVEY.questions.find((q) => q.id === qIdB);
+
+                                  if (qA?.order !== undefined && qB?.order !== undefined) {
+                                    return qA.order - qB.order;
+                                  }
+                                  if (qA?.order !== undefined) return -1;
+                                  if (qB?.order !== undefined) return 1;
+
+                                  const numA = parseInt(qIdA.replace(/\D/g, "") || "999", 10);
+                                  const numB = parseInt(qIdB.replace(/\D/g, "") || "999", 10);
+                                  return numA - numB;
+                                })
+                                .map(([qId, resp], idx) => {
                                 const questionMeta =
                                   currentSurvey?.questions?.find((q) => q.id === qId) ||
                                   PRINT_IT_RIGHT_SURVEY.questions.find((q) => q.id === qId);
 
-                                const questionTitle = questionMeta?.title || `Soru #${idx + 1}`;
+                                const questionNumber = questionMeta?.order ?? idx + 1;
+                                const questionTitle = questionMeta?.title || `Soru #${questionNumber}`;
                                 const questionDesc = questionMeta?.description;
                                 const isAudio = resp.mode === "audio" || Boolean(resp.audioUrl);
                                 const transcriptText = resp.transcript || resp.textResponse || "";
@@ -1560,7 +1588,7 @@ function AdminDashboardContent() {
                                       <div className="space-y-1">
                                         <div className="flex items-center gap-2">
                                           <span className="px-2 py-0.5 rounded-md bg-indigo-500/10 text-indigo-400 font-mono text-[10px] font-bold">
-                                            SORU #{idx + 1}
+                                            SORU #{questionNumber}
                                           </span>
                                           <h6 className="text-xs md:text-sm font-semibold text-white">
                                             {questionTitle}
@@ -1947,6 +1975,40 @@ function AdminDashboardContent() {
                     placeholder="Örn: IoT & Donanım Doğrulaması"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
                   />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                      Vaka Odak Hatırlatıcısı (TR)
+                    </label>
+                    <p className="text-[11px] text-slate-500 mb-1.5 leading-tight">
+                      Soru kartlarının üstünde sabit çapa rozeti olarak görünür.
+                    </p>
+                    <input
+                      type="text"
+                      value={newSurveyCaseAnchor}
+                      onChange={(e) => setNewSurveyCaseAnchor(e.target.value)}
+                      placeholder="Örn: Vaka Odağı: Belirlediğiniz somut parça"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-slate-300 mb-1">
+                      Case Focus Anchor (EN)
+                    </label>
+                    <p className="text-[11px] text-slate-500 mb-1.5 leading-tight">
+                      English case anchor badge shown on question cards.
+                    </p>
+                    <input
+                      type="text"
+                      value={newSurveyCaseAnchorEn}
+                      onChange={(e) => setNewSurveyCaseAnchorEn(e.target.value)}
+                      placeholder="e.g. Case Focus: Specific part event"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
                 </div>
 
                 <div className="p-3 rounded-xl bg-indigo-500/5 border border-indigo-500/20 text-xs text-indigo-300 flex items-start gap-2">

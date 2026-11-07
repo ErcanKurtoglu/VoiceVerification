@@ -41,6 +41,8 @@ export async function getSurveyByIdAsync(id: string): Promise<SurveyConfig> {
           taglineEn: data.tagline_en || data.taglineEn || fallbackConfig.taglineEn,
           description: data.description,
           descriptionEn: data.description_en || data.descriptionEn || fallbackConfig.descriptionEn,
+          caseAnchor: data.case_anchor || data.caseAnchor || fallbackConfig.caseAnchor,
+          caseAnchorEn: data.case_anchor_en || data.caseAnchorEn || fallbackConfig.caseAnchorEn,
           targetAudience: data.target_audience || fallbackConfig.targetAudience,
           targetAudienceEn: data.target_audience_en || data.targetAudienceEn || fallbackConfig.targetAudienceEn,
           estimatedMinutes: data.estimated_minutes || fallbackConfig.estimatedMinutes,

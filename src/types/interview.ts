@@ -19,6 +19,8 @@ export interface SurveyConfig {
   taglineEn?: string;
   description: string;
   descriptionEn?: string;
+  caseAnchor?: string; // Vaka Odak Çapası (örn: "Vaka Odağı: Belirlediğiniz somut parça")
+  caseAnchorEn?: string; // Case Focus Anchor (e.g. "Case Focus: Specific part event")
   targetAudience: string;
   targetAudienceEn?: string;
   estimatedMinutes: number;

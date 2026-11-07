@@ -191,6 +191,8 @@ export class GeminiAIService implements AIService {
         "taglineEn": "string (English)",
         "description": "string (Turkish)",
         "descriptionEn": "string (English)",
+        "caseAnchor": "string (Turkish, e.g. Vaka Odağı: Belirlediğiniz somut parça / olay)",
+        "caseAnchorEn": "string (English, e.g. Case Focus: Specific part event / incident)",
         "questions": [
           {
             "title": "string (Turkish)",
@@ -222,6 +224,8 @@ export class GeminiAIService implements AIService {
       taglineEn?: string;
       description?: string;
       descriptionEn?: string;
+      caseAnchor?: string;
+      caseAnchorEn?: string;
       questions?: Array<{
         title: string;
         titleEn?: string;
@@ -295,6 +299,8 @@ export class GeminiAIService implements AIService {
       taglineEn,
       description,
       descriptionEn,
+      caseAnchor: parsed.caseAnchor?.trim() || undefined,
+      caseAnchorEn: parsed.caseAnchorEn?.trim() || undefined,
       aiContext: rawPrompt.trim(),
       questions: sanitizedQuestions,
       totalMaxSpeakingSeconds,
