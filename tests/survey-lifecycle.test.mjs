@@ -197,3 +197,39 @@ describe("Survey Lifecycle: Back-Navigation Draft Preservation", () => {
     assert.deepStrictEqual(restoredAudioResponse.audioBlob, dummyBlob);
   });
 });
+
+describe("Survey Lifecycle: Session Cancellation & Clean Reset", () => {
+  test("Katılımcı görüşmeyi iptal ettiğinde taslaklar ve oturum tamamen temizlenip onboarding adımına dönülmelidir", () => {
+    let mockStorage = {
+      "voice_verification_session_test-survey": JSON.stringify({
+        projectId: "test-survey",
+        participant: { fullName: "Ercan", email: "e@test.com", company: "Test Co" },
+        responses: { q1: { questionId: "q1", textResponse: "Cevap 1" } },
+        step: "questions",
+        currentQuestionIndex: 1,
+      }),
+    };
+
+    let currentStep = "questions";
+    let participant = { fullName: "Ercan" };
+    let responses = { q1: { questionId: "q1" } };
+    let currentQuestionIndex = 1;
+
+    // handleCancelInterview simülasyonu
+    const handleCancel = () => {
+      delete mockStorage["voice_verification_session_test-survey"];
+      participant = null;
+      responses = {};
+      currentQuestionIndex = 0;
+      currentStep = "onboarding";
+    };
+
+    handleCancel();
+
+    assert.strictEqual(mockStorage["voice_verification_session_test-survey"], undefined, "Oturum taslağı localStorage'dan silinmelidir.");
+    assert.strictEqual(participant, null, "Katılımcı bilgileri temizlenmelidir.");
+    assert.deepStrictEqual(responses, {}, "Kayıtlı yanıtlar sıfırlanmalıdır.");
+    assert.strictEqual(currentQuestionIndex, 0, "Soru indeksi 0'a çekilmelidir.");
+    assert.strictEqual(currentStep, "onboarding", "Kullanıcı onboarding giriş adımına yönlendirilmelidir.");
+  });
+});

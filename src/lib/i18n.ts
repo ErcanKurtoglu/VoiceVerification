@@ -105,6 +105,11 @@ export interface Translations {
   nextQuestion: string;
   prevQuestion: string;
   finishSurvey: string;
+  cancelSessionBtn: string;
+  cancelModalTitle: string;
+  cancelModalDesc: string;
+  cancelModalConfirmBtn: string;
+  cancelModalBackBtn: string;
   micPromptInitial: string;
   micAriaStart: string;
   micAriaStop: string;
@@ -261,6 +266,12 @@ export const translations: Record<Language, Translations> = {
     nextQuestion: "Sonraki Soruya Geç",
     prevQuestion: "Önceki Soru",
     finishSurvey: "Geri Bildirime Geç",
+    cancelSessionBtn: "Görüşmeyi İptal Et",
+    cancelModalTitle: "Görüşmeyi İptal Etmek İstiyor musunuz?",
+    cancelModalDesc:
+      "Bu işlem görüşmenizi sonlandırır, kaydedilen taslak yanıtlarınızı temizler ve sizi anketin başlangıç ekranına döndürür. Bu işlem geri alınamaz.",
+    cancelModalConfirmBtn: "Evet, İptal Et ve Sil",
+    cancelModalBackBtn: "Görüşmeye Devam Et",
     micPromptInitial: "Mikrofona basarak konuşun",
     micAriaStart: "Ses kaydını başlat",
     micAriaStop: "Kaydı tamamla",
@@ -428,6 +439,12 @@ export const translations: Record<Language, Translations> = {
     nextQuestion: "Proceed to Next Question",
     prevQuestion: "Previous Question",
     finishSurvey: "Proceed to Feedback",
+    cancelSessionBtn: "Cancel Session",
+    cancelModalTitle: "Cancel Interview Session?",
+    cancelModalDesc:
+      "This will terminate your current interview, discard any saved draft responses, and return you to the survey start. This cannot be undone.",
+    cancelModalConfirmBtn: "Yes, Cancel & Discard",
+    cancelModalBackBtn: "Keep Interviewing",
     micPromptInitial: "Click microphone to speak",
     micAriaStart: "Start voice recording",
     micAriaStop: "Stop & confirm recording",

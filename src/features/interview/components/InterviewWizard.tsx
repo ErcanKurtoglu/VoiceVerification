@@ -193,6 +193,19 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
     saveDraft(participant, responses, tracking, "questions", lastIdx);
   };
 
+  // Görüşmeyi İptal Etme & Sıfırdan Başlama
+  const handleCancelInterview = () => {
+    try {
+      localStorage.removeItem(storageKey);
+    } catch {
+      // sessizce geç
+    }
+    setParticipant(null);
+    setResponses({});
+    setCurrentQuestionIndex(0);
+    setStep("onboarding");
+  };
+
   // Adım 3: Anket Tamamlandı, Feedback Verildi
   const handleFeedbackSubmit = async (feedback: FeedbackData) => {
     if (!participant) return;
@@ -310,6 +323,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
           onResponseSubmit={handleQuestionSubmit}
           onSaveDraft={handleSaveQuestionDraft}
           onPrevious={currentQuestionIndex > 0 ? handlePreviousQuestion : undefined}
+          onCancel={handleCancelInterview}
         />
       )}
 
