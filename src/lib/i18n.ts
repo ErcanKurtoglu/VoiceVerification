@@ -177,8 +177,8 @@ export const translations: Record<Language, Translations> = {
     pinCardSubtitle:
       "Size iletilen PIN kodunu ve bilgilerinizi girerek doğrudan ilgili araştırmaya başlayabilirsiniz.",
     pinLabel: "Anket Erişim Kodu (PIN)",
-    pinPlaceholder: "Örn: PIR-2026",
-    pinHelper: "Örnek Aktif PIN: PIR-2026",
+    pinPlaceholder: "Örn: ABCD-1234",
+    pinHelper: "Kurumunuza veya e-postanıza iletilen erişim PIN kodunu giriniz.",
     fullNameLabel: "Ad Soyad",
     fullNamePlaceholder: "Örn: Burak Kaya",
     emailLabel: "E-posta",
@@ -330,7 +330,7 @@ export const translations: Record<Language, Translations> = {
     accessDeniedSubtitle: "Bu anket korumalı bir kurumsal davetiye veya aktif PIN gerektirir.",
     accessDeniedDesc:
       "Geçerli bir davetiye token'ınız yoksa ana sayfadan kurumunuz için tanımlanan PIN kodunu girerek başlayabilirsiniz.",
-    accessDeniedPinInputPlaceholder: "Örn: PIR-2026",
+    accessDeniedPinInputPlaceholder: "Örn: ABCD-1234",
     accessDeniedSubmitBtn: "PIN ile Giriş Yap",
   },
 
@@ -352,8 +352,8 @@ export const translations: Record<Language, Translations> = {
     pinCardSubtitle:
       "Enter the access PIN and your professional details provided by your coordinator to begin immediately.",
     pinLabel: "Survey Access Code (PIN)",
-    pinPlaceholder: "E.g.: PIR-2026",
-    pinHelper: "Active Demo PIN: PIR-2026",
+    pinPlaceholder: "E.g.: ABCD-1234",
+    pinHelper: "Enter the access PIN provided to your organization.",
     fullNameLabel: "Full Name",
     fullNamePlaceholder: "E.g.: David Miller",
     emailLabel: "Work Email",
@@ -505,7 +505,7 @@ export const translations: Record<Language, Translations> = {
     accessDeniedSubtitle: "This survey requires an authenticated invite link or an active PIN code.",
     accessDeniedDesc:
       "If you do not have an active invite token, you can enter the survey PIN code issued for your organization on the homepage.",
-    accessDeniedPinInputPlaceholder: "E.g.: PIR-2026",
+    accessDeniedPinInputPlaceholder: "E.g.: ABCD-1234",
     accessDeniedSubmitBtn: "Enter with PIN",
   },
 };

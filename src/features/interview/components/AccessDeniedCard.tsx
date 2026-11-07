@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { getSurveyById } from "@/surveys";
 import { ConsentModal } from "./ConsentModal";
+import { useLanguage } from "@/context/LanguageContext";
 
 interface AccessDeniedCardProps {
   reason: "missing_access" | "expired" | "invalid_code" | "survey_inactive";
@@ -29,6 +30,7 @@ export const AccessDeniedCard: React.FC<AccessDeniedCardProps> = ({
   reason,
   surveyId,
 }) => {
+  const { t, lang } = useLanguage();
   const survey = getSurveyById(surveyId);
 
   // Anket pasife alınmışsa form gösterme, doğrudan net uyarı sun
@@ -188,11 +190,11 @@ export const AccessDeniedCard: React.FC<AccessDeniedCardProps> = ({
             type="text"
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            placeholder="Örn: PIR-2026"
+            placeholder={t.accessDeniedPinInputPlaceholder}
             className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-indigo-500/30 text-white font-mono uppercase tracking-wider text-xs focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20 transition-all placeholder:text-slate-600"
           />
           <span className="text-[10px] text-slate-500 mt-1 block">
-            Test Kodu: <strong className="text-indigo-400 font-mono">PIR-2026</strong>
+            {lang === "en" ? "Enter the access PIN provided for your organization." : "Kurumunuza iletilen anket erişim PIN kodunu giriniz."}
           </span>
         </div>
 

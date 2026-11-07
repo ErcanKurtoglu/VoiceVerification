@@ -2258,7 +2258,7 @@ function AdminDashboardContent() {
                     type="text"
                     value={newPinValue}
                     onChange={(e) => setNewPinValue(e.target.value.toUpperCase())}
-                    placeholder="Örn: PIR-2026-EXPO"
+                    placeholder="Örn: KOD-2026"
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-700 font-mono text-sm text-white uppercase tracking-wider focus:outline-none focus:border-indigo-500"
                     autoFocus
                   />
