@@ -80,17 +80,18 @@ describe("Regression: Final Question to Feedback Transition & Draft Resilience",
     assert.strictEqual(res2.nextIndex, 2);
   });
 
-  test("4. (son) soru yanıtlandığında doğrudan 'feedback' adımına geçmeli ve taslağı mühürlemelidir", () => {
+  test("Son soru yanıtlandığında doğrudan 'feedback' adımına geçmeli ve taslağı mühürlemelidir", () => {
+    const lastIndex = totalQuestions - 1;
     const resFinal = simulateQuestionSubmit({
-      currentQuestionIndex: 3, // 4. soru (index 3 - son soru)
+      currentQuestionIndex: lastIndex, // Son soru indexi
       responses: { q1: {}, q2: {}, q3: {} },
-      newResponse: { questionId: "q4", mode: "text", textResponse: "mehmet deneme 4" },
+      newResponse: { questionId: `q${totalQuestions}`, mode: "text", textResponse: "mehmet deneme son" },
       participant: { fullName: "Mehmet" },
     });
 
     assert.strictEqual(resFinal.nextStep, "feedback");
     assert.strictEqual(resFinal.sessionDraft.step, "feedback");
-    assert.strictEqual(resFinal.sessionDraft.currentQuestionIndex, 3);
+    assert.strictEqual(resFinal.sessionDraft.currentQuestionIndex, lastIndex);
   });
 
   test("Taslak geri yükleme (rehydration) 'feedback' adımındaki kullanıcıyı son soruya geri döndürmemelidir", () => {

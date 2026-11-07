@@ -27,22 +27,28 @@ export async function getSurveyByIdAsync(id: string): Promise<SurveyConfig> {
         .maybeSingle();
 
       if (!error && data) {
+        const fallbackConfig =
+          SURVEY_REGISTRY[data.id] ||
+          (data.slug ? SURVEY_REGISTRY[data.slug] : undefined) ||
+          PRINT_IT_RIGHT_SURVEY;
+
         const survey: SurveyConfig = {
           id: data.id,
           slug: data.slug || data.id,
           title: data.title,
-          titleEn: data.title_en || data.titleEn,
+          titleEn: data.title_en || data.titleEn || fallbackConfig.titleEn,
           tagline: data.tagline,
-          taglineEn: data.tagline_en || data.taglineEn,
+          taglineEn: data.tagline_en || data.taglineEn || fallbackConfig.taglineEn,
           description: data.description,
-          descriptionEn: data.description_en || data.descriptionEn,
-          targetAudience: data.target_audience || "",
-          targetAudienceEn: data.target_audience_en || data.targetAudienceEn,
-          estimatedMinutes: data.estimated_minutes || 3,
-          aiContext: data.ai_context || "",
-          aiContextEn: data.ai_context_en || data.aiContextEn,
+          descriptionEn: data.description_en || data.descriptionEn || fallbackConfig.descriptionEn,
+          targetAudience: data.target_audience || fallbackConfig.targetAudience,
+          targetAudienceEn: data.target_audience_en || data.targetAudienceEn || fallbackConfig.targetAudienceEn,
+          estimatedMinutes: data.estimated_minutes || fallbackConfig.estimatedMinutes,
+          aiContext: data.ai_context || fallbackConfig.aiContext,
+          aiContextEn: data.ai_context_en || data.aiContextEn || fallbackConfig.aiContextEn,
+          tips: fallbackConfig.tips,
           isActive: data.is_active ?? true,
-          questions: Array.isArray(data.questions) ? data.questions : [],
+          questions: Array.isArray(data.questions) && data.questions.length > 0 ? data.questions : fallbackConfig.questions,
         };
         SURVEY_REGISTRY[data.id] = survey;
         SURVEY_REGISTRY[survey.slug] = survey;

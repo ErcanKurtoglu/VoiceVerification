@@ -7,8 +7,8 @@ describe("Survey Lifecycle: Configuration & Question Integrity", () => {
     assert.strictEqual(PRINT_IT_RIGHT_SURVEY.id, "print-it-right");
     assert.strictEqual(typeof PRINT_IT_RIGHT_SURVEY.title, "string");
     assert.strictEqual(PRINT_IT_RIGHT_SURVEY.title.length > 5, true);
-    assert.strictEqual(PRINT_IT_RIGHT_SURVEY.questions.length, 4);
-    assert.strictEqual(PRINT_IT_RIGHT_SURVEY.estimatedMinutes, 6);
+    assert.strictEqual(PRINT_IT_RIGHT_SURVEY.questions.length, 9);
+    assert.strictEqual(PRINT_IT_RIGHT_SURVEY.estimatedMinutes, 9);
     assert.strictEqual(typeof PRINT_IT_RIGHT_SURVEY.aiContext, "string");
   });
 
@@ -25,7 +25,8 @@ describe("Survey Lifecycle: Configuration & Question Integrity", () => {
       assert.strictEqual(q.title.length > 5, true);
       assert.strictEqual(q.description.length > 10, true);
       assert.strictEqual(q.clarificationHint.length > 5, true);
-      assert.strictEqual(q.maxDurationSec >= 60, true);
+      assert.strictEqual(q.maxDurationSec >= 30, true);
+      assert.strictEqual(q.maxDurationSec % 30, 0, "Süre 30'un katı olmalı");
     });
   });
 });
