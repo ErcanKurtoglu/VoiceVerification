@@ -14,6 +14,7 @@ const ChatRequestSchema = z.object({
     })
   ),
   projectContext: z.string(),
+  lang: z.enum(["tr", "en"]).optional().default("tr"),
 });
 
 export async function POST(req: NextRequest) {
@@ -35,17 +36,16 @@ export async function POST(req: NextRequest) {
       userQuery,
       conversationHistory,
       projectContext,
+      lang,
     } = validation.data;
 
-    // DoS & Abuse Koruması: Bir soru için maksimum 6 tur konuşma izni
+    // DoS & Abuse Koruması: Bir soru için maksimum 6-10 tur konuşma izni
     if (conversationHistory.length >= 10) {
-      return NextResponse.json(
-        {
-          reply:
-            "Bu soru için soru sorma sınırına ulaştınız. Lütfen soruyu yanıtlamak için mikrofona konuşun veya metin kutusunu kullanın.",
-        },
-        { status: 200 }
-      );
+      const quotaMsg =
+        lang === "en"
+          ? "You have reached the question clarification limit for this step. Please proceed by recording your response or typing in the text box."
+          : "Bu soru için soru sorma sınırına ulaştınız. Lütfen soruyu yanıtlamak için mikrofona konuşun veya metin kutusunu kullanın.";
+      return NextResponse.json({ reply: quotaMsg }, { status: 200 });
     }
 
     const ai = getAIService();
@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
       userQuery,
       conversationHistory,
       projectContext,
+      lang,
     });
 
     return NextResponse.json({ reply });

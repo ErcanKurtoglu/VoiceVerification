@@ -72,9 +72,25 @@ export interface Translations {
   onboardingEstimatedTime: string;
   onboardingSubtitle: string;
   onboardingStartBtn: string;
+  statsEstimatedMinutes: string;
+  statsQuestionsCount: string;
+  statsKvkkBadge: string;
+  tipsTitle: string;
+  tipAudioTextTitle: string;
+  tipAudioTextDesc: string;
+  tipAiAssistantTitle: string;
+  tipAiAssistantDesc: string;
+  tipPreviousTitle: string;
+  tipPreviousDesc: string;
+  verifiedInviteTitle: string;
+  verifiedInviteEditBtn: string;
+  verifiedInviteParticipant: string;
+  verifiedInviteCompanyRole: string;
+  verifiedInviteEmail: string;
 
   // Question Card
   questionProgress: string;
+  maxDurationPrefix: string;
   clarificationHintTitle: string;
   tabAudio: string;
   tabText: string;
@@ -89,6 +105,17 @@ export interface Translations {
   nextQuestion: string;
   prevQuestion: string;
   finishSurvey: string;
+  micPromptInitial: string;
+  micAriaStart: string;
+  micAriaStop: string;
+
+  // Assistant Drawer
+  assistantDrawerTitle: string;
+  assistantDrawerSubtitle: string;
+  assistantQuickPrompts: string[];
+  assistantErrorDefault: string;
+  assistantConnectionError: string;
+  assistantQuotaExceeded: string;
 
   // Feedback Form
   feedbackBadge: string;
@@ -202,8 +229,24 @@ export const translations: Record<Language, Translations> = {
     onboardingSubtitle:
       "Görüşleriniz yapay zeka analiz motorumuzla değerlendirilecek ve anonim olarak ürün geliştirme yol haritamızı şekillendirecektir.",
     onboardingStartBtn: "Görüşmeye Başla",
+    statsEstimatedMinutes: "Yaklaşık {min} Dakika",
+    statsQuestionsCount: "{count} Soru",
+    statsKvkkBadge: "KVKK Uyumlu",
+    tipsTitle: "Görüşme İpuçları",
+    tipAudioTextTitle: "Ses & Metin",
+    tipAudioTextDesc: "Konuşarak veya dilediğinizde yazarak yanıtlayın.",
+    tipAiAssistantTitle: "AI Asistan",
+    tipAiAssistantDesc: "Takıldığınızda soru detayını asistana danışın.",
+    tipPreviousTitle: "Geri Dönüş",
+    tipPreviousDesc: "Önceki soruya dönebilir, kaydı dinleyebilirsiniz.",
+    verifiedInviteTitle: "Özel Davetiyeniz Doğrulandı",
+    verifiedInviteEditBtn: "Bilgileri Düzenle",
+    verifiedInviteParticipant: "Katılımcı",
+    verifiedInviteCompanyRole: "Kurum & Rol",
+    verifiedInviteEmail: "E-posta",
 
     questionProgress: "Soru",
+    maxDurationPrefix: "Maks.",
     clarificationHintTitle: "İpucu / Bağlam",
     tabAudio: "Sesli Yanıtla",
     tabText: "Yazarak Yanıtla",
@@ -218,6 +261,21 @@ export const translations: Record<Language, Translations> = {
     nextQuestion: "Sonraki Soruya Geç",
     prevQuestion: "Önceki Soru",
     finishSurvey: "Geri Bildirime Geç",
+    micPromptInitial: "Mikrofona basarak konuşun",
+    micAriaStart: "Ses kaydını başlat",
+    micAriaStop: "Kaydı tamamla",
+
+    assistantDrawerTitle: "Soru Asistanı",
+    assistantDrawerSubtitle: "Soruyu netleştirmek için danışın",
+    assistantQuickPrompts: [
+      "Bana somut bir örnek verir misiniz?",
+      "Bu soruda tam olarak neyi kastediyorsunuz?",
+      "Bu veri projenizde nasıl kullanılacak?",
+    ],
+    assistantErrorDefault: "Bir sorun oluştu. Lütfen tekrar sorunuz.",
+    assistantConnectionError: "Sunucuyla bağlantı kurulamadı.",
+    assistantQuotaExceeded:
+      "Bu soru için soru sorma sınırına ulaştınız. Lütfen soruyu yanıtlamak için mikrofona konuşun veya metin kutusunu kullanın.",
 
     feedbackBadge: "Sorular Tamamlandı!",
     feedbackBackToQuestions: "Sorulara Geri Dön",
@@ -338,8 +396,24 @@ export const translations: Record<Language, Translations> = {
     onboardingSubtitle:
       "Your field experience will be analyzed by our AI intelligence pipeline to validate product roadmaps and engineering hypotheses.",
     onboardingStartBtn: "Begin Session",
+    statsEstimatedMinutes: "Approx. {min} Minutes",
+    statsQuestionsCount: "{count} Questions",
+    statsKvkkBadge: "GDPR / KVKK Compliant",
+    tipsTitle: "Interview Tips",
+    tipAudioTextTitle: "Voice & Text",
+    tipAudioTextDesc: "Speak naturally or switch to writing anytime.",
+    tipAiAssistantTitle: "AI Assistant",
+    tipAiAssistantDesc: "Ask the copilot to clarify context or terms.",
+    tipPreviousTitle: "Navigation",
+    tipPreviousDesc: "Return to previous questions or review audio.",
+    verifiedInviteTitle: "Your Private Invitation is Verified",
+    verifiedInviteEditBtn: "Edit Details",
+    verifiedInviteParticipant: "Participant",
+    verifiedInviteCompanyRole: "Organization & Role",
+    verifiedInviteEmail: "Email",
 
     questionProgress: "Question",
+    maxDurationPrefix: "Max",
     clarificationHintTitle: "Industrial Context / Hint",
     tabAudio: "Respond by Voice",
     tabText: "Respond in Writing",
@@ -354,6 +428,21 @@ export const translations: Record<Language, Translations> = {
     nextQuestion: "Proceed to Next Question",
     prevQuestion: "Previous Question",
     finishSurvey: "Proceed to Feedback",
+    micPromptInitial: "Click microphone to speak",
+    micAriaStart: "Start voice recording",
+    micAriaStop: "Stop & confirm recording",
+
+    assistantDrawerTitle: "Question Assistant",
+    assistantDrawerSubtitle: "Clarify question scope & terms",
+    assistantQuickPrompts: [
+      "Can you give a concrete example?",
+      "What exactly do you mean in this question?",
+      "How will this data be used in your project?",
+    ],
+    assistantErrorDefault: "An error occurred. Please try asking again.",
+    assistantConnectionError: "Could not connect to the server.",
+    assistantQuotaExceeded:
+      "You have reached the question clarification limit for this step. Please record your response or use the text box.",
 
     feedbackBadge: "Questions Completed!",
     feedbackBackToQuestions: "Back to Questions",
@@ -397,3 +486,24 @@ export const translations: Record<Language, Translations> = {
     accessDeniedSubmitBtn: "Enter with PIN",
   },
 };
+
+/**
+ * Nesneden seçili dile (TR / EN) göre uygun metni çözer.
+ * Eğer dil 'en' ise fieldEn (örn: titleEn) arar; boş veya tanımsızsa varsayılan field'a döner.
+ */
+export function getLocalizedText<T extends Record<string, any>>(
+  entity: T | null | undefined,
+  field: string,
+  lang: Language
+): string {
+  if (!entity) return "";
+  if (lang === "en") {
+    const enField = `${field}En`;
+    const enVal = entity[enField];
+    if (typeof enVal === "string" && enVal.trim().length > 0) {
+      return enVal.trim();
+    }
+  }
+  const defaultVal = entity[field];
+  return typeof defaultVal === "string" ? defaultVal.trim() : "";
+}

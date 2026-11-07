@@ -15,6 +15,8 @@ import { FeedbackForm } from "@/features/feedback/components/FeedbackForm";
 import { CompletionCard } from "./CompletionCard";
 import { AlreadyCompletedCard } from "./AlreadyCompletedCard";
 import { generateUUID } from "@/lib/utils";
+import { useLanguage } from "@/context/LanguageContext";
+import { getLocalizedText } from "@/lib/i18n";
 
 interface InterviewWizardProps {
   project: SurveyConfig;
@@ -29,6 +31,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
   initialParticipant,
   initialTracking,
 }) => {
+  const { lang } = useLanguage();
   const [step, setStep] = useState<WizardStep>("onboarding");
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [participant, setParticipant] = useState<ParticipantData | null>(null);
@@ -302,7 +305,7 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
           question={project.questions[currentQuestionIndex]}
           questionNumber={currentQuestionIndex + 1}
           totalQuestions={project.questions.length}
-          projectContext={project.aiContext}
+          projectContext={getLocalizedText(project, "aiContext", lang) || project.aiContext}
           initialResponse={responses[project.questions[currentQuestionIndex].id]}
           onResponseSubmit={handleQuestionSubmit}
           onSaveDraft={handleSaveQuestionDraft}

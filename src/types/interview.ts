@@ -14,11 +14,16 @@ export interface SurveyConfig {
   id: string; // Unique Identifier (örn: "print-it-right")
   slug: string;
   title: string;
+  titleEn?: string;
   tagline: string;
+  taglineEn?: string;
   description: string;
+  descriptionEn?: string;
   targetAudience: string;
+  targetAudienceEn?: string;
   estimatedMinutes: number;
   aiContext: string; // Mini AI için bağlam bilgisi
+  aiContextEn?: string;
   tips?: string[]; // Platform kullanım ipuçları
   isActive?: boolean; // Anket aktiflik / pasiflik durumu (varsayılan: true)
   questions: Question[];
@@ -30,8 +35,11 @@ export interface Question {
   id: string;
   order: number;
   title: string;
+  titleEn?: string;
   description: string;
+  descriptionEn?: string;
   clarificationHint: string;
+  clarificationHintEn?: string;
   maxDurationSec: number;
 }
 

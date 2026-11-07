@@ -27,6 +27,7 @@ import { generateShortId } from "@/lib/utils";
 import { isSpamSubmission } from "@/features/anti-garbage/honeypot";
 import { ConsentModal } from "./ConsentModal";
 import { useLanguage } from "@/context/LanguageContext";
+import { getLocalizedText } from "@/lib/i18n";
 
 interface OnboardingFormProps {
   project: SurveyConfig;
@@ -173,31 +174,31 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
       <div className="text-center mb-6">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-xs font-medium mb-3">
           <Sparkles className="w-3.5 h-3.5" />
-          <span>{project.tagline}</span>
+          <span>{getLocalizedText(project, "tagline", lang)}</span>
         </div>
 
         <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight leading-snug mb-3">
-          {project.title}
+          {getLocalizedText(project, "title", lang)}
         </h1>
 
         <p className="text-xs md:text-sm text-slate-300 leading-relaxed max-w-md mx-auto">
-          {project.description}
+          {getLocalizedText(project, "description", lang)}
         </p>
 
         <div className="flex items-center justify-center gap-4 text-[11px] text-slate-400 mt-4">
           <span className="flex items-center gap-1">
             <Clock className="w-3.5 h-3.5 text-indigo-400" />
-            Yaklaşık {project.estimatedMinutes} Dakika
+            {t.statsEstimatedMinutes.replace("{min}", String(project.estimatedMinutes))}
           </span>
           <span>•</span>
           <span className="flex items-center gap-1">
             <Mic className="w-3.5 h-3.5 text-purple-400" />
-            {project.questions.length} Soru
+            {t.statsQuestionsCount.replace("{count}", String(project.questions.length))}
           </span>
           <span>•</span>
           <span className="text-emerald-400 flex items-center gap-1">
             <ShieldCheck className="w-3.5 h-3.5" />
-            KVKK Uyumlu
+            {t.statsKvkkBadge}
           </span>
         </div>
       </div>
@@ -206,20 +207,20 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
       <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 mb-6">
         <h3 className="text-xs font-semibold text-slate-300 mb-2 flex items-center gap-1.5">
           <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-          <span>Görüşme İpuçları</span>
+          <span>{t.tipsTitle}</span>
         </h3>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-[11px] text-slate-400">
           <div className="flex items-start gap-1.5 p-2 rounded-xl bg-slate-900/60 border border-slate-800/50">
             <Mic className="w-3.5 h-3.5 text-indigo-400 shrink-0 mt-0.5" />
-            <span><strong>Ses & Metin:</strong> Konuşarak veya dilediğinizde yazarak yanıtlayın.</span>
+            <span><strong>{t.tipAudioTextTitle}:</strong> {t.tipAudioTextDesc}</span>
           </div>
           <div className="flex items-start gap-1.5 p-2 rounded-xl bg-slate-900/60 border border-slate-800/50">
             <HelpCircle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
-            <span><strong>AI Asistan:</strong> Takıldığınızda soru detayını asistana danışın.</span>
+            <span><strong>{t.tipAiAssistantTitle}:</strong> {t.tipAiAssistantDesc}</span>
           </div>
           <div className="flex items-start gap-1.5 p-2 rounded-xl bg-slate-900/60 border border-slate-800/50">
             <RotateCcw className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
-            <span><strong>Geri Dönüş:</strong> Önceki soruya dönebilir, kaydı dinleyebilirsiniz.</span>
+            <span><strong>{t.tipPreviousTitle}:</strong> {t.tipPreviousDesc}</span>
           </div>
         </div>
       </div>
@@ -245,28 +246,28 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
               <div className="flex items-center justify-between gap-2 mb-2">
                 <div className="flex items-center gap-2 text-indigo-400 text-xs font-semibold">
                   <UserCheck className="w-4 h-4" />
-                  <span>Özel Davetiyeniz Doğrulandı</span>
+                  <span>{t.verifiedInviteTitle}</span>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsDirectUrlParticipant(false)}
                   className="text-[11px] text-slate-400 hover:text-indigo-300 underline font-medium cursor-pointer"
                 >
-                  Bilgileri Düzenle
+                  {t.verifiedInviteEditBtn}
                 </button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
                 <div>
-                  <span className="text-[11px] text-slate-400 block">Katılımcı</span>
+                  <span className="text-[11px] text-slate-400 block">{t.verifiedInviteParticipant}</span>
                   <strong className="text-white text-sm">{formData.fullName}</strong>
                 </div>
                 <div>
-                  <span className="text-[11px] text-slate-400 block">Kurum & Rol</span>
+                  <span className="text-[11px] text-slate-400 block">{t.verifiedInviteCompanyRole}</span>
                   <span className="text-slate-200">{formData.company} • {formData.title}</span>
                 </div>
               </div>
               <div className="mt-2 pt-2 border-t border-indigo-500/20 text-[11px] text-slate-400">
-                <span>E-posta: </span>
+                <span>{t.verifiedInviteEmail}: </span>
                 <span className="text-slate-300 font-mono">{formData.email}</span>
               </div>
             </div>
@@ -282,29 +283,59 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
                   className="mt-1 w-4 h-4 rounded border-slate-700 bg-slate-800 text-indigo-600 focus:ring-indigo-500/30 cursor-pointer"
                 />
                 <span className="text-xs text-slate-300 leading-relaxed">
-                  Ses kaydımın bu araştırma kapsamında deşifre edilmesini, anonim olarak işlenmesini ve{" "}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setConsentTab("terms");
-                      setIsConsentOpen(true);
-                    }}
-                    className="text-indigo-400 hover:text-indigo-300 underline font-medium"
-                  >
-                    Kullanım Şartları
-                  </button>{" "}
-                  ile{" "}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setConsentTab("kvkk");
-                      setIsConsentOpen(true);
-                    }}
-                    className="text-indigo-400 hover:text-indigo-300 underline font-medium"
-                  >
-                    KVKK Metnini
-                  </button>{" "}
-                  kabul ediyorum.
+                  {lang === "en" ? (
+                    <>
+                      I agree to content transcription, anonymous research aggregation,{" "}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConsentTab("terms");
+                          setIsConsentOpen(true);
+                        }}
+                        className="text-indigo-400 hover:text-indigo-300 underline font-medium"
+                      >
+                        {t.termsLink}
+                      </button>{" "}
+                      and{" "}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConsentTab("kvkk");
+                          setIsConsentOpen(true);
+                        }}
+                        className="text-indigo-400 hover:text-indigo-300 underline font-medium"
+                      >
+                        {t.kvkkLink}
+                      </button>
+                      .
+                    </>
+                  ) : (
+                    <>
+                      Ses kaydımın bu araştırma kapsamında deşifre edilmesini, anonim olarak işlenmesini ve{" "}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConsentTab("terms");
+                          setIsConsentOpen(true);
+                        }}
+                        className="text-indigo-400 hover:text-indigo-300 underline font-medium"
+                      >
+                        {t.termsLink}
+                      </button>{" "}
+                      ile{" "}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConsentTab("kvkk");
+                          setIsConsentOpen(true);
+                        }}
+                        className="text-indigo-400 hover:text-indigo-300 underline font-medium"
+                      >
+                        {t.kvkkLink}
+                      </button>{" "}
+                      kabul ediyorum.
+                    </>
+                  )}
                 </span>
               </label>
               {errors.consentGiven && (
@@ -406,29 +437,59 @@ export const OnboardingForm: React.FC<OnboardingFormProps> = ({
                   className="mt-1 w-4 h-4 rounded border-slate-700 bg-slate-800 text-indigo-600 focus:ring-indigo-500/30 cursor-pointer"
                 />
                 <span className="text-xs text-slate-300 leading-relaxed">
-                  Ses kaydımın deşifre edilmesini, anonim olarak işlenmesini ve{" "}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setConsentTab("terms");
-                      setIsConsentOpen(true);
-                    }}
-                    className="text-indigo-400 hover:text-indigo-300 underline font-medium"
-                  >
-                    Kullanım Şartları
-                  </button>{" "}
-                  ile{" "}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setConsentTab("kvkk");
-                      setIsConsentOpen(true);
-                    }}
-                    className="text-indigo-400 hover:text-indigo-300 underline font-medium"
-                  >
-                    KVKK Aydınlatma Metnini
-                  </button>{" "}
-                  kabul ediyorum.
+                  {lang === "en" ? (
+                    <>
+                      I agree to content transcription, anonymous research aggregation,{" "}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConsentTab("terms");
+                          setIsConsentOpen(true);
+                        }}
+                        className="text-indigo-400 hover:text-indigo-300 underline font-medium"
+                      >
+                        {t.termsLink}
+                      </button>{" "}
+                      and{" "}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConsentTab("kvkk");
+                          setIsConsentOpen(true);
+                        }}
+                        className="text-indigo-400 hover:text-indigo-300 underline font-medium"
+                      >
+                        {t.kvkkLink}
+                      </button>
+                      .
+                    </>
+                  ) : (
+                    <>
+                      Ses kaydımın deşifre edilmesini, anonim olarak işlenmesini ve{" "}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConsentTab("terms");
+                          setIsConsentOpen(true);
+                        }}
+                        className="text-indigo-400 hover:text-indigo-300 underline font-medium"
+                      >
+                        {t.termsLink}
+                      </button>{" "}
+                      ile{" "}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setConsentTab("kvkk");
+                          setIsConsentOpen(true);
+                        }}
+                        className="text-indigo-400 hover:text-indigo-300 underline font-medium"
+                      >
+                        {t.kvkkLink}
+                      </button>{" "}
+                      kabul ediyorum.
+                    </>
+                  )}
                 </span>
               </label>
               {errors.consentGiven && (

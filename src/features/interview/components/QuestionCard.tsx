@@ -8,6 +8,7 @@ import { AudioRecorderControl } from "@/features/audio/components/AudioRecorderC
 import { AssistantDrawer } from "@/features/assistant/components/AssistantDrawer";
 import { useLanguage } from "@/context/LanguageContext";
 import { formatTime } from "@/lib/utils";
+import { getLocalizedText } from "@/lib/i18n";
 
 interface QuestionCardProps {
   question: Question;
@@ -30,7 +31,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   onSaveDraft,
   onPrevious,
 }) => {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [mode, setMode] = useState<"audio" | "text">(
     initialResponse?.mode || "audio"
   );
@@ -119,7 +120,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           </span>
           <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-800/80 border border-slate-700/80 text-slate-300">
             <Clock className="w-3 h-3 text-indigo-400" />
-            <span>Maks. {formatTime(question.maxDurationSec || 90)}</span>
+            <span>{t.maxDurationPrefix} {formatTime(question.maxDurationSec || 90)}</span>
           </span>
         </div>
 
@@ -136,10 +137,10 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
       {/* Soru Başlığı ve Açıklaması */}
       <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight leading-snug mb-3">
-        {question.title}
+        {getLocalizedText(question, "title", lang)}
       </h2>
       <p className="text-xs md:text-sm text-slate-300 leading-relaxed mb-6">
-        {question.description}
+        {getLocalizedText(question, "description", lang)}
       </p>
 
       {/* Ses / Metin Modu Sekmeleri */}
@@ -260,6 +261,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         onClose={() => setIsAssistantOpen(false)}
         question={question}
         projectContext={projectContext}
+        lang={lang}
       />
     </div>
   );

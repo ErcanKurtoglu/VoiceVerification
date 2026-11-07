@@ -4,12 +4,15 @@ import React, { useState } from "react";
 import { MessageSquareCode, X, Send, Sparkles, Bot } from "lucide-react";
 import { Question } from "@/types/interview";
 import { ChatMessage } from "@/services/ai/interface";
+import { useLanguage } from "@/context/LanguageContext";
+import { Language, getLocalizedText } from "@/lib/i18n";
 
 interface AssistantDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   question: Question;
   projectContext: string;
+  lang?: Language;
 }
 
 export const AssistantDrawer: React.FC<AssistantDrawerProps> = ({
@@ -17,14 +20,17 @@ export const AssistantDrawer: React.FC<AssistantDrawerProps> = ({
   onClose,
   question,
   projectContext,
+  lang: propLang,
 }) => {
+  const { t, lang: ctxLang } = useLanguage();
+  const activeLang = propLang || ctxLang || "tr";
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   if (!isOpen) return null;
 
-  const quickPrompts = [
+  const quickPrompts = t.assistantQuickPrompts || [
     "Bana somut bir örnek verir misiniz?",
     "Bu soruda tam olarak neyi kastediyorsunuz?",
     "Bu veri projenizde nasıl kullanılacak?",
@@ -45,9 +51,10 @@ export const AssistantDrawer: React.FC<AssistantDrawerProps> = ({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          questionTitle: question.title,
-          questionDescription: question.description,
-          questionHint: question.clarificationHint,
+          lang: activeLang,
+          questionTitle: getLocalizedText(question, "title", activeLang),
+          questionDescription: getLocalizedText(question, "description", activeLang),
+          questionHint: getLocalizedText(question, "clarificationHint", activeLang),
           userQuery: text,
           conversationHistory: messages,
           projectContext,
@@ -60,13 +67,13 @@ export const AssistantDrawer: React.FC<AssistantDrawerProps> = ({
       } else {
         setMessages([
           ...newMessages,
-          { role: "assistant", content: "Bir sorun oluştu. Lütfen tekrar sorunuz." },
+          { role: "assistant", content: t.assistantErrorDefault },
         ]);
       }
     } catch {
       setMessages([
         ...newMessages,
-        { role: "assistant", content: "Sunucuyla bağlantı kurulamadı." },
+        { role: "assistant", content: t.assistantConnectionError },
       ]);
     } finally {
       setIsLoading(false);
@@ -84,17 +91,17 @@ export const AssistantDrawer: React.FC<AssistantDrawerProps> = ({
             </div>
             <div>
               <h3 className="text-sm font-semibold flex items-center gap-1.5">
-                <span>Soru Asistanı</span>
+                <span>{t.assistantDrawerTitle}</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono">
                   AI
                 </span>
               </h3>
-              <p className="text-[11px] text-slate-400">Soruyu netleştirmek için danışın</p>
+              <p className="text-[11px] text-slate-400">{t.assistantDrawerSubtitle}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -102,8 +109,10 @@ export const AssistantDrawer: React.FC<AssistantDrawerProps> = ({
 
         {/* Aktif Soru Özeti */}
         <div className="p-3 bg-slate-800/40 border-b border-slate-800/60 text-xs text-slate-300">
-          <span className="font-semibold text-indigo-300">İlgili Soru: </span>
-          {question.title}
+          <span className="font-semibold text-indigo-300">
+            {activeLang === "en" ? "Related Question: " : "İlgili Soru: "}
+          </span>
+          {getLocalizedText(question, "title", activeLang)}
         </div>
 
         {/* Mesaj Listesi */}
@@ -112,7 +121,9 @@ export const AssistantDrawer: React.FC<AssistantDrawerProps> = ({
             <div className="py-6 flex flex-col items-center text-center text-slate-400 gap-3">
               <Sparkles className="w-8 h-8 text-indigo-400/80" />
               <p className="max-w-[260px] text-xs">
-                Soruyu tam olarak anlayamadıysanız veya aklınıza takılan bir detay varsa aşağıdan sorabilirsiniz.
+                {activeLang === "en"
+                  ? "If anything in this question is unclear or you need context, feel free to ask below."
+                  : "Soruyu tam olarak anlayamadıysanız veya aklınıza takılan bir detay varsa aşağıdan sorabilirsiniz."}
               </p>
 
               {/* Hızlı Butonlar */}
@@ -122,7 +133,7 @@ export const AssistantDrawer: React.FC<AssistantDrawerProps> = ({
                     key={idx}
                     type="button"
                     onClick={() => sendMessage(prompt)}
-                    className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-indigo-600/20 hover:border-indigo-500/40 border border-slate-700/60 text-slate-300 text-left transition-all"
+                    className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-indigo-600/20 hover:border-indigo-500/40 border border-slate-700/60 text-slate-300 text-left transition-all cursor-pointer"
                   >
                     {prompt}
                   </button>
@@ -168,15 +179,15 @@ export const AssistantDrawer: React.FC<AssistantDrawerProps> = ({
             onKeyDown={(e) => {
               if (e.key === "Enter") sendMessage();
             }}
-            placeholder="Sorunuzu yazın..."
+            placeholder={activeLang === "en" ? "Type your question..." : "Sorunuzu yazın..."}
             className="flex-1 px-3.5 py-2.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-indigo-500 transition-all"
           />
           <button
             type="button"
             onClick={() => sendMessage()}
             disabled={!input.trim() || isLoading}
-            className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white transition-all"
-            aria-label="Gönder"
+            className="p-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white transition-all cursor-pointer"
+            aria-label={activeLang === "en" ? "Send" : "Gönder"}
           >
             <Send className="w-4 h-4" />
           </button>

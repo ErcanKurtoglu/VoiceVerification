@@ -206,8 +206,11 @@ function AdminDashboardContent() {
   const [newSurveyQuestions, setNewSurveyQuestions] = useState<
     Array<{
       title: string;
+      titleEn?: string;
       description: string;
+      descriptionEn?: string;
       clarificationHint: string;
+      clarificationHintEn?: string;
       maxDurationSec: number;
     }>
   >([{ title: "", description: "", clarificationHint: "", maxDurationSec: 90 }]);
@@ -459,8 +462,11 @@ function AdminDashboardContent() {
         setNewSurveyQuestions(
           survey.questions.map((q: any) => ({
             title: q.title || "",
+            titleEn: q.titleEn || "",
             description: q.description || "",
+            descriptionEn: q.descriptionEn || "",
             clarificationHint: q.clarificationHint || "",
+            clarificationHintEn: q.clarificationHintEn || "",
             maxDurationSec: q.maxDurationSec && q.maxDurationSec % 30 === 0 ? q.maxDurationSec : 90,
           }))
         );
@@ -507,10 +513,13 @@ function AdminDashboardContent() {
       id: `q${idx + 1}_${Date.now()}`,
       order: idx + 1,
       title: q.title.trim(),
+      titleEn: q.titleEn?.trim() || undefined,
       description: q.description.trim(),
+      descriptionEn: q.descriptionEn?.trim() || undefined,
       clarificationHint:
         q.clarificationHint.trim() ||
         "Soruyu yanıtlarken sahadaki somut deneyimlerinizi aktarabilirsiniz.",
+      clarificationHintEn: q.clarificationHintEn?.trim() || undefined,
       maxDurationSec: q.maxDurationSec && q.maxDurationSec % 30 === 0 ? q.maxDurationSec : 90,
     }));
 
