@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Mic, PenLine, HelpCircle, ArrowRight, ArrowLeft, Check } from "lucide-react";
+import { Mic, PenLine, HelpCircle, ArrowRight, ArrowLeft, Check, Clock } from "lucide-react";
 import { Question, QuestionResponse } from "@/types/interview";
 import { useAudioRecorder } from "@/features/audio/hooks/useAudioRecorder";
 import { AudioRecorderControl } from "@/features/audio/components/AudioRecorderControl";
 import { AssistantDrawer } from "@/features/assistant/components/AssistantDrawer";
 import { useLanguage } from "@/context/LanguageContext";
+import { formatTime } from "@/lib/utils";
 
 interface QuestionCardProps {
   question: Question;
@@ -79,9 +80,15 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     <div className="w-full max-w-2xl mx-auto p-6 md:p-8 rounded-3xl bg-slate-900/80 border border-slate-800 shadow-2xl backdrop-blur-xl animate-fadeIn">
       {/* İlerleme ve Yardım Barı */}
       <div className="flex items-center justify-between gap-2 mb-6">
-        <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wider">
-          {t.questionProgress} {questionNumber} / {totalQuestions}
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wider">
+            {t.questionProgress} {questionNumber} / {totalQuestions}
+          </span>
+          <span className="inline-flex items-center gap-1 text-[11px] font-mono px-2 py-0.5 rounded-full bg-slate-800/80 border border-slate-700/80 text-slate-300">
+            <Clock className="w-3 h-3 text-indigo-400" />
+            <span>Maks. {formatTime(question.maxDurationSec || 90)}</span>
+          </span>
+        </div>
 
         {/* AI Asistana Danış Butonu */}
         <button
