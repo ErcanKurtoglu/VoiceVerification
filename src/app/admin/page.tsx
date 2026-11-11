@@ -1608,7 +1608,11 @@ function AdminDashboardContent() {
                     return (
                       <div
                         key={s.id}
-                        className="rounded-2xl bg-slate-950/60 border border-slate-800/80 overflow-hidden transition-all"
+                        className={`rounded-2xl overflow-hidden transition-all ${
+                          isExpanded
+                            ? "bg-slate-900/90 border-2 border-indigo-500/40 ring-1 ring-indigo-500/20 shadow-2xl shadow-black/60"
+                            : "bg-slate-950/60 border border-slate-800/80 hover:border-slate-700/80"
+                        }`}
                       >
                         {/* Özet Başlık Satırı */}
                         <div
@@ -1694,7 +1698,7 @@ function AdminDashboardContent() {
 
                         {/* Detay Paneli */}
                         {isExpanded && (
-                          <div className="p-4 border-t border-slate-900 bg-slate-900/30 space-y-4">
+                          <div className="p-5 md:p-6 border-t-2 border-indigo-500/30 bg-[#0b1222] space-y-5 shadow-[inset_0_2px_12px_rgba(0,0,0,0.4)]">
                             {/* Katılımcı Bilgi Kartı */}
                             <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 text-xs">
                               <div>
@@ -1890,6 +1894,25 @@ function AdminDashboardContent() {
                                   );
                                 });
                               })()}
+                            </div>
+
+                            {/* Oturum Sonu & Hızlı Kapatma Çubuğu */}
+                            <div className="pt-3 mt-4 flex items-center justify-between border-t border-slate-800/90 text-xs text-slate-400">
+                              <span className="flex items-center gap-1.5 font-medium text-slate-300">
+                                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                                <span>Oturum Yanıtları Sonu ({Object.keys(s.responses).length} Soru Kayıtlı)</span>
+                              </span>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setExpandedSessionId(null);
+                                }}
+                                className="px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 text-slate-200 hover:text-white transition-all flex items-center gap-1.5 text-xs font-semibold shadow-sm"
+                              >
+                                <ChevronUp className="w-3.5 h-3.5" />
+                                <span>Detayı Kapat</span>
+                              </button>
                             </div>
                           </div>
                         )}
