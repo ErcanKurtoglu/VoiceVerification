@@ -23,18 +23,18 @@ export async function GET() {
       id: row.id,
       slug: row.slug || row.id,
       title: row.title,
-      titleEn: row.title_en || row.titleEn,
+      titleEn: row.title_en || row.titleEn || row.questions?.[0]?.titleEn,
       tagline: row.tagline,
-      taglineEn: row.tagline_en || row.taglineEn,
+      taglineEn: row.tagline_en || row.taglineEn || row.questions?.[0]?.taglineEn,
       description: row.description,
-      descriptionEn: row.description_en || row.descriptionEn,
+      descriptionEn: row.description_en || row.descriptionEn || row.questions?.[0]?.descriptionEn,
       caseAnchor: row.case_anchor || row.caseAnchor || row.questions?.[0]?.caseAnchor,
       caseAnchorEn: row.case_anchor_en || row.caseAnchorEn || row.questions?.[0]?.caseAnchorEn,
       targetAudience: row.target_audience || "",
-      targetAudienceEn: row.target_audience_en || row.targetAudienceEn,
+      targetAudienceEn: row.target_audience_en || row.targetAudienceEn || row.questions?.[0]?.targetAudienceEn,
       estimatedMinutes: row.estimated_minutes || 3,
       aiContext: row.ai_context || "",
-      aiContextEn: row.ai_context_en || row.aiContextEn,
+      aiContextEn: row.ai_context_en || row.aiContextEn || row.questions?.[0]?.aiContextEn,
       isActive: row.is_active ?? true,
       questions: Array.isArray(row.questions) ? row.questions : [],
     }));
@@ -83,10 +83,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Attach caseAnchor and caseAnchorEn to questions[0] for persistence
+    // Attach bilingual metadata and case anchors to questions[0] for persistence in jsonb
     if (questions[0]) {
       if (caseAnchor) questions[0].caseAnchor = caseAnchor;
       if (caseAnchorEn) questions[0].caseAnchorEn = caseAnchorEn;
+      if (titleEn) questions[0].titleEn = titleEn;
+      if (taglineEn) questions[0].taglineEn = taglineEn;
+      if (descriptionEn) questions[0].descriptionEn = descriptionEn;
+      if (targetAudienceEn) questions[0].targetAudienceEn = targetAudienceEn;
+      if (aiContextEn) questions[0].aiContextEn = aiContextEn;
     }
 
     for (let i = 0; i < questions.length; i++) {
@@ -130,7 +135,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const payload: Record<string, any> = {
+    const payload = {
       id: surveyId,
       slug: finalSlug,
       title: title.trim(),
@@ -144,14 +149,6 @@ export async function POST(req: NextRequest) {
       is_active: true,
       updated_at: new Date().toISOString(),
     };
-
-    if (titleEn) payload.title_en = titleEn.trim();
-    if (taglineEn) payload.tagline_en = taglineEn.trim();
-    if (descriptionEn) payload.description_en = descriptionEn.trim();
-    if (caseAnchor) payload.case_anchor = caseAnchor.trim();
-    if (caseAnchorEn) payload.case_anchor_en = caseAnchorEn.trim();
-    if (targetAudienceEn) payload.target_audience_en = targetAudienceEn.trim();
-    if (aiContextEn) payload.ai_context_en = aiContextEn.trim();
 
     const { error: upsertErr } = await supabaseAdmin
       .from("surveys")
@@ -237,18 +234,11 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (title) updates.title = title.trim();
-    if (titleEn !== undefined) updates.title_en = titleEn.trim();
     if (description) updates.description = description.trim();
-    if (descriptionEn !== undefined) updates.description_en = descriptionEn.trim();
     if (tagline) updates.tagline = tagline.trim();
-    if (taglineEn !== undefined) updates.tagline_en = taglineEn.trim();
-    if (caseAnchor !== undefined) updates.case_anchor = caseAnchor.trim();
-    if (caseAnchorEn !== undefined) updates.case_anchor_en = caseAnchorEn.trim();
     if (targetAudience !== undefined) updates.target_audience = targetAudience.trim();
-    if (targetAudienceEn !== undefined) updates.target_audience_en = targetAudienceEn.trim();
     if (estimatedMinutes !== undefined) updates.estimated_minutes = Number(estimatedMinutes);
     if (aiContext !== undefined) updates.ai_context = aiContext.trim();
-    if (aiContextEn !== undefined) updates.ai_context_en = aiContextEn.trim();
 
     if (questions !== undefined && Array.isArray(questions)) {
       if (questions.length === 0) {
@@ -264,8 +254,15 @@ export async function PATCH(req: NextRequest) {
           );
         }
       }
-      if (caseAnchor && questions[0]) questions[0].caseAnchor = caseAnchor;
-      if (caseAnchorEn && questions[0]) questions[0].caseAnchorEn = caseAnchorEn;
+      if (questions[0]) {
+        if (caseAnchor !== undefined) questions[0].caseAnchor = caseAnchor;
+        if (caseAnchorEn !== undefined) questions[0].caseAnchorEn = caseAnchorEn;
+        if (titleEn !== undefined) questions[0].titleEn = titleEn;
+        if (taglineEn !== undefined) questions[0].taglineEn = taglineEn;
+        if (descriptionEn !== undefined) questions[0].descriptionEn = descriptionEn;
+        if (targetAudienceEn !== undefined) questions[0].targetAudienceEn = targetAudienceEn;
+        if (aiContextEn !== undefined) questions[0].aiContextEn = aiContextEn;
+      }
       updates.questions = questions;
 
       const totalSec = questions.reduce((sum: number, q: any) => sum + (Number(q.maxDurationSec) || 60), 0);
