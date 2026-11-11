@@ -1918,6 +1918,8 @@ function AdminDashboardContent() {
               {surveysList.map((sv) => {
                 const rawMatch = rawSurveysData.find((r) => r.id === sv.id || r.slug === sv.id);
                 const pin = rawMatch?.access_pin || (isSurveyMatch(sv.id, "print-it-right") ? "PIR-2026" : "KOD-YOK");
+                const svSessionCount = sessions.filter((s) => isSurveyMatch(s.projectId, sv.id)).length;
+                const isLocked = svSessionCount > 0;
 
                 return (
                   <div
@@ -1988,16 +1990,28 @@ function AdminDashboardContent() {
                           <span>{sv.isActive !== false ? "Pasife Al" : "Aktifleştir"}</span>
                         </button>
 
-                        {/* Düzenle Butonu */}
-                        <button
-                          type="button"
-                          onClick={() => handleOpenEditSurveyModal(sv, pin)}
-                          className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-medium transition-all flex items-center gap-1 border border-slate-700 active:scale-95 cursor-pointer"
-                          title="Anket Ayarları ve Sorularını Düzenle"
-                        >
-                          <Edit3 className="w-3 h-3 text-indigo-400" />
-                          <span>Düzenle</span>
-                        </button>
+                        {/* Düzenle Butonu (Yanıt almış anketlerde veri koruması için kilitli/pasif) */}
+                        {isLocked ? (
+                          <button
+                            type="button"
+                            disabled
+                            className="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-500 text-[11px] font-medium flex items-center gap-1 opacity-50 cursor-not-allowed select-none"
+                            title={`Bu anket ${svSessionCount} katılımcı yanıtı aldığı için doğrudan düzenlenemez. Soruları değiştirmek için lütfen 'Çoğalt' seçeneğini kullanınız.`}
+                          >
+                            <Lock className="w-3 h-3 text-amber-500/80" />
+                            <span>Düzenle (Kilitli)</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditSurveyModal(sv, pin)}
+                            className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-medium transition-all flex items-center gap-1 border border-slate-700 active:scale-95 cursor-pointer"
+                            title="Anket Ayarları ve Sorularını Düzenle"
+                          >
+                            <Edit3 className="w-3 h-3 text-indigo-400" />
+                            <span>Düzenle</span>
+                          </button>
+                        )}
 
                         {/* Çoğalt Butonu (Tek Tıkla Akıllı Klonlama) */}
                         <button
@@ -2083,30 +2097,12 @@ function AdminDashboardContent() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {surveyModalMode === "edit" && editingSurveyOriginal && (
-                    <button
-                      type="button"
-                      disabled={duplicatingSurveyId !== null}
-                      onClick={() => handleExecuteSmartDuplicate(editingSurveyOriginal, newSurveyPin)}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
-                      title="Bu anketin tüm içeriğini ve AI bağlamını bağımsız yeni bir versiyon olarak kopyala ve kapat"
-                    >
-                      {duplicatingSurveyId ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
-                      ) : (
-                        <Copy className="w-3.5 h-3.5" />
-                      )}
-                      <span>Yeni Versiyon Çoğalt</span>
-                    </button>
-                  )}
-                  <button
-                    onClick={() => setIsNewSurveyModalOpen(false)}
-                    className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer"
-                  >
-                    ✕
-                  </button>
-                </div>
+                <button
+                  onClick={() => setIsNewSurveyModalOpen(false)}
+                  className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer"
+                >
+                  ✕
+                </button>
               </div>
 
               {/* Yanıt Almış Anket Koruma Uyarısı */}

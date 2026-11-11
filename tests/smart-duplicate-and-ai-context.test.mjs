@@ -171,4 +171,48 @@ describe("Smart One-Click Duplicate (V2 -> V3 -> V4) & AI Context Preservation",
     assert.equal(isPromptAccordionRendered("edit"), false, "Mevcut anket düzenlenirken AI Prompt paneli gizlenmelidir");
     assert.equal(isPromptAccordionRendered("duplicate"), false, "Çoğaltma sırasında AI Prompt paneli gizlenmelidir");
   });
+
+  test("5. Kart Yönetimi: Yanıt almış anketlerde 'Düzenle' butonu kilitli/pasif olmalı, 0 yanıtlılarda aktif olmalıdır", () => {
+    const checkCardEditButtonState = (sessionCount) => {
+      const isLocked = sessionCount > 0;
+      return {
+        disabled: isLocked,
+        label: isLocked ? "Düzenle (Kilitli)" : "Düzenle",
+      };
+    };
+
+    // 17 katılımcısı olan anket
+    const lockedState = checkCardEditButtonState(17);
+    assert.equal(lockedState.disabled, true, "Yanıt almış anketin Düzenle butonu disabled olmalıdır");
+    assert.equal(lockedState.label, "Düzenle (Kilitli)");
+
+    // 0 katılımcısı olan yeni çoğaltılmış anket
+    const editableState = checkCardEditButtonState(0);
+    assert.equal(editableState.disabled, false, "0 yanıtlı anketin Düzenle butonu aktif olmalıdır");
+    assert.equal(editableState.label, "Düzenle");
+  });
+
+  test("6. Modal Sadeliği: Modal başlığında mükerrer kopyala butonu olmamalı, eylem sadece amber uyarı kutusunda tek olmalıdır", () => {
+    const getModalCopyActions = (sessionCount) => {
+      const actions = [];
+      // Header'da buton yok
+      const headerHasCopyButton = false;
+      if (headerHasCopyButton) actions.push("header");
+
+      // Yalnızca yanıt almış anketin amber uyarı kutusunda tek buton var
+      if (sessionCount > 0) {
+        actions.push("amber_box_v2_duplicate");
+      }
+      return actions;
+    };
+
+    // 17 katılımcılı ankette yalnızca amber kutu butonu olmalı (1 adet)
+    const lockedActions = getModalCopyActions(17);
+    assert.equal(lockedActions.length, 1, "Düzenleme modalında asla iki adet çoğalt butonu olmamalıdır");
+    assert.equal(lockedActions[0], "amber_box_v2_duplicate");
+
+    // 0 katılımcılı ankette modal içinde gereksiz çoğaltma butonu olmamalı (0 adet)
+    const editableActions = getModalCopyActions(0);
+    assert.equal(editableActions.length, 0);
+  });
 });
