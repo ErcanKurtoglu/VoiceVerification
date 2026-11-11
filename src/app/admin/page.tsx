@@ -1992,15 +1992,21 @@ function AdminDashboardContent() {
 
                         {/* Düzenle Butonu (Yanıt almış anketlerde veri koruması için kilitli/pasif) */}
                         {isLocked ? (
-                          <button
-                            type="button"
-                            disabled
-                            className="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-500 text-[11px] font-medium flex items-center gap-1 opacity-50 cursor-not-allowed select-none"
-                            title={`Bu anket ${svSessionCount} katılımcı yanıtı aldığı için doğrudan düzenlenemez. Soruları değiştirmek için lütfen 'Çoğalt' seçeneğini kullanınız.`}
-                          >
-                            <Lock className="w-3 h-3 text-amber-500/80" />
-                            <span>Düzenle (Kilitli)</span>
-                          </button>
+                          <div className="relative group inline-block">
+                            <button
+                              type="button"
+                              disabled
+                              className="px-2.5 py-1.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-500 text-[11px] font-medium flex items-center gap-1 opacity-50 cursor-not-allowed select-none"
+                              title="Ankete giriş yapıldığı için düzenleme yapılamaz."
+                            >
+                              <Lock className="w-3 h-3 text-amber-500/80" />
+                              <span>Düzenle (Kilitli)</span>
+                            </button>
+                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover:flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-950 border border-amber-500/30 text-[10px] text-amber-300 font-medium whitespace-nowrap shadow-2xl pointer-events-none z-20 animate-fadeIn">
+                              <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+                              <span>Ankete giriş yapıldığı için düzenleme yapılamaz.</span>
+                            </div>
+                          </div>
                         ) : (
                           <button
                             type="button"
