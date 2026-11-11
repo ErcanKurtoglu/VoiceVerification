@@ -278,12 +278,15 @@ function AdminDashboardContent() {
   const [surveySaveError, setSurveySaveError] = useState("");
   const [surveySaveSuccess, setSurveySaveSuccess] = useState("");
 
-  // Anket Modalı Modu: "create" | "edit" | "duplicate"
-  const [surveyModalMode, setSurveyModalMode] = useState<"create" | "edit" | "duplicate">("create");
+  // Anket Modalı Modu: "create" | "edit"
+  const [surveyModalMode, setSurveyModalMode] = useState<"create" | "edit">("create");
   const [editingSurveyId, setEditingSurveyId] = useState<string | null>(null);
+  const [editingSurveyOriginal, setEditingSurveyOriginal] = useState<SurveyConfig | null>(null);
   const [editingSurveySessionCount, setEditingSurveySessionCount] = useState<number>(0);
   const [clarifyingQuestionIndex, setClarifyingQuestionIndex] = useState<number | null>(null);
   const [clarifySuccessIndex, setClarifySuccessIndex] = useState<number | null>(null);
+  const [surveyListSuccess, setSurveyListSuccess] = useState("");
+  const [duplicatingSurveyId, setDuplicatingSurveyId] = useState<string | null>(null);
 
   // AI Prompt ile Otomatik Üretim State
   const [isAiGenOpen, setIsAiGenOpen] = useState(false);
@@ -320,6 +323,7 @@ function AdminDashboardContent() {
     const sessionCount = sessions.filter((s) => isSurveyMatch(s.projectId, survey.id)).length;
     setSurveyModalMode("edit");
     setEditingSurveyId(survey.id);
+    setEditingSurveyOriginal(survey);
     setEditingSurveySessionCount(sessionCount);
 
     setNewSurveyTitle(survey.title || "");
@@ -348,39 +352,144 @@ function AdminDashboardContent() {
     setIsNewSurveyModalOpen(true);
   };
 
-  // Çoğaltma (Duplicate / V2) Modalı Açma
-  const handleOpenDuplicateSurveyModal = (survey: SurveyConfig, pin: string) => {
-    setSurveyModalMode("duplicate");
-    setEditingSurveyId(null);
-    setEditingSurveySessionCount(0);
+  // Tek Tıkla Akıllı Çoğaltma (One-Click Smart Duplicate)
+  const handleExecuteSmartDuplicate = async (sourceSurvey: SurveyConfig | null, sourcePin?: string) => {
+    if (!sourceSurvey) return;
+    setDuplicatingSurveyId(sourceSurvey.id);
+    setSurveyListSuccess("");
 
-    const v2Title = survey.title.includes("V2") ? `${survey.title} (Kopya)` : `${survey.title} (V2)`;
-    const v2Pin = pin && pin !== "KOD-YOK" ? `${pin}-V2` : "";
+    try {
+      // 1. Akıllı İsim Algoritması (V2 -> V3 -> V4)
+      const rawTitle = (sourceSurvey.title || "Yeni Anket").trim();
+      const match = rawTitle.match(/\s*\(V(\d+)\)$/i);
+      const baseTitle = match
+        ? rawTitle.replace(/\s*\(V\d+\)$/i, "").trim()
+        : rawTitle.replace(/\s*\(Kopya.*?\)$/i, "").trim();
 
-    setNewSurveyTitle(v2Title);
-    setNewSurveyTagline(survey.tagline || "");
-    setNewSurveyDesc(survey.description || "");
-    setNewSurveyCaseAnchor(survey.caseAnchor || "");
-    setNewSurveyCaseAnchorEn(survey.caseAnchorEn || "");
-    setNewSurveyPin(v2Pin);
-    setNewSurveyAiContext(survey.aiContext || "");
-    setNewSurveyQuestions(
-      survey.questions?.length
-        ? survey.questions.map((q) => ({
-            title: q.title || "",
-            titleEn: q.titleEn || "",
-            description: q.description || "",
-            descriptionEn: q.descriptionEn || "",
-            clarificationHint: q.clarificationHint || "",
-            clarificationHintEn: q.clarificationHintEn || "",
-            maxDurationSec: q.maxDurationSec || 90,
-          }))
-        : [{ title: "", description: "", clarificationHint: "", maxDurationSec: 90 }]
-    );
-    setSurveySaveError("");
-    setSurveySaveSuccess("");
-    setIsAiGenOpen(false);
-    setIsNewSurveyModalOpen(true);
+      let maxVer = 1;
+      surveysList.forEach((s) => {
+        const sTitle = (s.title || "").trim();
+        if (sTitle.startsWith(baseTitle)) {
+          const vMatch = sTitle.match(/\s*\(V(\d+)\)$/i);
+          if (vMatch) {
+            const vNum = parseInt(vMatch[1], 10);
+            if (!isNaN(vNum) && vNum > maxVer) {
+              maxVer = vNum;
+            }
+          } else if (sTitle === baseTitle && maxVer < 1) {
+            maxVer = 1;
+          }
+        }
+      });
+      const nextVersion = maxVer + 1;
+      const newTitle = `${baseTitle} (V${nextVersion})`;
+
+      // English Title
+      let newTitleEn = sourceSurvey.titleEn;
+      if (sourceSurvey.titleEn) {
+        const rawTitleEn = sourceSurvey.titleEn.trim();
+        const matchEn = rawTitleEn.match(/\s*\(V(\d+)\)$/i);
+        const baseTitleEn = matchEn
+          ? rawTitleEn.replace(/\s*\(V\d+\)$/i, "").trim()
+          : rawTitleEn.replace(/\s*\(Kopya.*?\)$/i, "").trim();
+        newTitleEn = `${baseTitleEn} (V${nextVersion})`;
+      }
+
+      // 2. Benzersiz PIN Kodu Algoritması
+      const rawMatch = rawSurveysData.find((r) => r.id === sourceSurvey.id || r.slug === sourceSurvey.id);
+      const effectivePin = sourcePin || rawMatch?.access_pin || (isSurveyMatch(sourceSurvey.id, "print-it-right") ? "PIR-2026" : "SURVEY");
+      let basePin = effectivePin.toUpperCase().trim();
+      basePin = basePin.replace(/-V\d+$/i, "").replace(/-KOPYA.*?$/i, "").trim();
+
+      const existingPins = new Set(
+        rawSurveysData.map((r) => (r.access_pin || "").toUpperCase().trim())
+      );
+      if (isSurveyMatch(sourceSurvey.id, "print-it-right")) {
+        existingPins.add("PIR-2026");
+      }
+
+      let candidatePin = `${basePin}-V${nextVersion}`;
+      let pinCounter = nextVersion;
+      while (existingPins.has(candidatePin)) {
+        pinCounter++;
+        candidatePin = `${basePin}-V${pinCounter}`;
+      }
+
+      // 3. Benzersiz Slug / ID
+      const baseSlug = (sourceSurvey.slug || sourceSurvey.id || "survey")
+        .toLowerCase()
+        .replace(/-v\d+$/i, "")
+        .replace(/-kopya.*?$/i, "")
+        .trim();
+      const existingIds = new Set(surveysList.map((s) => (s.slug || s.id).toLowerCase()));
+      let candidateSlug = `${baseSlug}-v${nextVersion}`;
+      let slugCounter = nextVersion;
+      while (existingIds.has(candidateSlug)) {
+        slugCounter++;
+        candidateSlug = `${baseSlug}-v${slugCounter}`;
+      }
+
+      // 4. Tüm Soru ve AI Bağlamlarını Eksiksiz Kopyalama (Deep Clone)
+      const clonedQuestions = (sourceSurvey.questions || []).map((q, idx) => ({
+        id: `q-${idx + 1}-${Date.now()}`,
+        order: idx + 1,
+        title: q.title || "",
+        titleEn: q.titleEn || "",
+        description: q.description || "",
+        descriptionEn: q.descriptionEn || "",
+        clarificationHint: q.clarificationHint || "",
+        clarificationHintEn: q.clarificationHintEn || "",
+        maxDurationSec: q.maxDurationSec && q.maxDurationSec % 30 === 0 ? q.maxDurationSec : 90,
+      }));
+
+      // 5. API İsteği (POST /api/surveys)
+      const payload = {
+        id: candidateSlug,
+        slug: candidateSlug,
+        title: newTitle,
+        titleEn: newTitleEn,
+        tagline: sourceSurvey.tagline || "Sektörel Doğrulama",
+        taglineEn: sourceSurvey.taglineEn || "",
+        description: sourceSurvey.description || "",
+        descriptionEn: sourceSurvey.descriptionEn || "",
+        caseAnchor: sourceSurvey.caseAnchor || "",
+        caseAnchorEn: sourceSurvey.caseAnchorEn || "",
+        targetAudience: sourceSurvey.targetAudience || "",
+        targetAudienceEn: sourceSurvey.targetAudienceEn || "",
+        estimatedMinutes: sourceSurvey.estimatedMinutes || 3,
+        aiContext: sourceSurvey.aiContext || "",
+        aiContextEn: sourceSurvey.aiContextEn || "",
+        accessPin: candidatePin,
+        questions: clonedQuestions,
+      };
+
+      const res = await fetch("/api/surveys", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Anket çoğaltılamadı.");
+      }
+
+      // Modalı kapat ("o kısmı kapatsın")
+      setIsNewSurveyModalOpen(false);
+
+      // Başarı bildirimini listeye ekle
+      setSurveyListSuccess(
+        `✨ "${newTitle}" başarıyla çoğaltıldı! Erişim PIN: ${candidatePin}. Katılımcı: 0 (Sorular kilitsizdir, dilediğiniz gibi düzenleyebilirsiniz).`
+      );
+
+      // Anketleri yeniden çek
+      await fetchSurveys();
+    } catch (err: unknown) {
+      const error = err as Error;
+      alert("Çoğaltma hatası: " + error.message);
+    } finally {
+      setDuplicatingSurveyId(null);
+    }
   };
 
   // Soru Başına AI Asistan Kapsamı Üretme
@@ -1787,6 +1896,23 @@ function AdminDashboardContent() {
               </button>
             </div>
 
+            {/* Başarı Bildirimi */}
+            {surveyListSuccess && (
+              <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center justify-between gap-2 animate-fadeIn">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>{surveyListSuccess}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSurveyListSuccess("")}
+                  className="text-emerald-400 hover:text-white text-xs font-semibold p-1 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
             {/* Anket Kartları Listesi */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {surveysList.map((sv) => {
@@ -1873,15 +1999,20 @@ function AdminDashboardContent() {
                           <span>Düzenle</span>
                         </button>
 
-                        {/* Çoğalt (V2) Butonu */}
+                        {/* Çoğalt Butonu (Tek Tıkla Akıllı Klonlama) */}
                         <button
                           type="button"
-                          onClick={() => handleOpenDuplicateSurveyModal(sv, pin)}
-                          className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 hover:text-emerald-200 text-[11px] font-medium transition-all flex items-center gap-1 border border-emerald-500/30 active:scale-95 cursor-pointer"
-                          title="Bu Anketi Yeni Versiyon (V2) Olarak Çoğalt"
+                          disabled={duplicatingSurveyId === sv.id}
+                          onClick={() => handleExecuteSmartDuplicate(sv, pin)}
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 hover:text-emerald-200 text-[11px] font-medium transition-all flex items-center gap-1 border border-emerald-500/30 active:scale-95 cursor-pointer disabled:opacity-50"
+                          title="Bu anketi tüm soruları ve AI bağlamıyla bağımsız yeni bir versiyon olarak anında çoğalt"
                         >
-                          <Copy className="w-3 h-3 text-emerald-400" />
-                          <span>Çoğalt (V2)</span>
+                          {duplicatingSurveyId === sv.id ? (
+                            <Loader2 className="w-3 h-3 animate-spin text-emerald-400" />
+                          ) : (
+                            <Copy className="w-3 h-3 text-emerald-400" />
+                          )}
+                          <span>{duplicatingSurveyId === sv.id ? "Çoğaltılıyor..." : "Çoğalt (V2)"}</span>
                         </button>
 
                         <button
@@ -1932,9 +2063,7 @@ function AdminDashboardContent() {
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
-                    {surveyModalMode === "duplicate" ? (
-                      <Copy className="w-4 h-4 text-emerald-400" />
-                    ) : surveyModalMode === "edit" ? (
+                    {surveyModalMode === "edit" ? (
                       <Edit3 className="w-4 h-4 text-indigo-400" />
                     ) : (
                       <Layers className="w-4 h-4" />
@@ -1942,28 +2071,42 @@ function AdminDashboardContent() {
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-white">
-                      {surveyModalMode === "duplicate"
-                        ? "Anketi Çoğalt (Yeni Versiyon - V2)"
-                        : surveyModalMode === "edit"
+                      {surveyModalMode === "edit"
                         ? `Anketi Düzenle: ${newSurveyTitle || "Seçili Anket"}`
                         : "Yeni Anket Oluştur"}
                     </h3>
                     <p className="text-xs text-slate-400">
-                      {surveyModalMode === "duplicate"
-                        ? "Mevcut soru seti kopyalandı. Sıfır katılımcı ile bağımsız yeni versiyon oluşturulacak."
-                        : surveyModalMode === "edit"
+                      {surveyModalMode === "edit"
                         ? "Anket başlığı, genel açıklamaları veya sorularını güncelleyin."
                         : "Anket bilgileri ve soru setini tanımlayın; otomatik olarak canlıya alınsın."}
                     </p>
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setIsNewSurveyModalOpen(false)}
-                  className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer"
-                >
-                  ✕
-                </button>
+                <div className="flex items-center gap-2">
+                  {surveyModalMode === "edit" && editingSurveyOriginal && (
+                    <button
+                      type="button"
+                      disabled={duplicatingSurveyId !== null}
+                      onClick={() => handleExecuteSmartDuplicate(editingSurveyOriginal, newSurveyPin)}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                      title="Bu anketin tüm içeriğini ve AI bağlamını bağımsız yeni bir versiyon olarak kopyala ve kapat"
+                    >
+                      {duplicatingSurveyId ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                      <span>Yeni Versiyon Çoğalt</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsNewSurveyModalOpen(false)}
+                    className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
 
               {/* Yanıt Almış Anket Koruma Uyarısı */}
@@ -1982,18 +2125,15 @@ function AdminDashboardContent() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      setSurveyModalMode("duplicate");
-                      setEditingSurveyId(null);
-                      setEditingSurveySessionCount(0);
-                      setNewSurveyTitle((prev) =>
-                        prev.includes("V2") ? `${prev} (Kopya)` : `${prev} (V2)`
-                      );
-                      setNewSurveyPin((prev) => (prev ? `${prev}-V2` : ""));
-                    }}
-                    className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 text-[11px] font-semibold shrink-0 cursor-pointer transition-all flex items-center gap-1.5 active:scale-95"
+                    disabled={duplicatingSurveyId !== null}
+                    onClick={() => handleExecuteSmartDuplicate(editingSurveyOriginal, newSurveyPin)}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 text-[11px] font-semibold shrink-0 cursor-pointer transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
                   >
-                    <Copy className="w-3.5 h-3.5" />
+                    {duplicatingSurveyId ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
                     <span>V2 Olarak Çoğalt</span>
                   </button>
                 </div>
@@ -2013,104 +2153,106 @@ function AdminDashboardContent() {
                 </div>
               )}
 
-              {/* AI Prompt ile Otomatik Üretim Akordiyonu */}
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-purple-950/30 to-slate-900 border border-indigo-500/30 shadow-lg space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center">
-                      <Sparkles className="w-4 h-4 text-indigo-400" />
+              {/* AI Prompt ile Otomatik Üretim Akordiyonu (YALNIZCA sıfırdan yeni anket oluştururken) */}
+              {surveyModalMode === "create" && (
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-purple-950/30 to-slate-900 border border-indigo-500/30 shadow-lg space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-indigo-500/20 text-indigo-300 flex items-center justify-center">
+                        <Sparkles className="w-4 h-4 text-indigo-400" />
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                          <span>Yapay Zeka ile Prompt'tan Otomatik Oluştur</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono">
+                            AI Engine
+                          </span>
+                        </h4>
+                        <p className="text-[11px] text-slate-400">
+                          System Prompt, Guardrails ve Araştırma Bağlamını girin; sorular, 30 sn katı konuşma süreleri ve toplam süre otomatik çıksın.
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <span>Yapay Zeka ile Prompt'tan Otomatik Oluştur</span>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-mono">
-                          AI Engine
+
+                    <button
+                      type="button"
+                      onClick={() => setIsAiGenOpen(!isAiGenOpen)}
+                      className="px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 text-xs font-medium transition-all flex items-center gap-1"
+                    >
+                      <Wand2 className="w-3.5 h-3.5" />
+                      <span>{isAiGenOpen ? "Paneli Gizle" : "Prompt ile Doldur"}</span>
+                      {isAiGenOpen ? <ChevronUp className="w-3.5 h-3.5 ml-0.5" /> : <ChevronDown className="w-3.5 h-3.5 ml-0.5" />}
+                    </button>
+                  </div>
+
+                  {isAiGenOpen && (
+                    <div className="space-y-3 pt-2 border-t border-indigo-500/20 animate-fadeIn">
+                      <div className="flex items-center justify-between gap-2 flex-wrap">
+                        <label className="text-[11px] font-semibold text-slate-300">
+                          Araştırma Promptu, Guardrail ve Bağlam Metni:
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAiPromptInput(PRINT_IT_RIGHT_PROMPT_TEMPLATE);
+                            setPromptGenError("");
+                          }}
+                          className="text-[11px] text-indigo-400 hover:text-indigo-300 underline font-medium flex items-center gap-1"
+                        >
+                          <span>📋 Örnek Print It Right Şablonunu Yükle</span>
+                        </button>
+                      </div>
+
+                      <textarea
+                        rows={6}
+                        value={aiPromptInput}
+                        onChange={(e) => setAiPromptInput(e.target.value)}
+                        placeholder="System Prompt, Guardrails ve Araştırma Bağlamı (Research Context) metnini buraya yapıştırın..."
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-indigo-500/30 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-400 font-mono leading-relaxed"
+                      />
+
+                      {promptGenError && (
+                        <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 shrink-0" />
+                          <span>{promptGenError}</span>
+                        </div>
+                      )}
+
+                      {promptGenSuccess && (
+                        <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4 shrink-0" />
+                          <span>{promptGenSuccess}</span>
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
+                        <span className="text-[10px] text-slate-400">
+                          * Süreler bilişsel talebe göre 30 sn katlarında belirlenir. Uygunluk ve takip soruları üretilmez.
                         </span>
-                      </h4>
-                      <p className="text-[11px] text-slate-400">
-                        System Prompt, Guardrails ve Araştırma Bağlamını girin; sorular, 30 sn katı konuşma süreleri ve toplam süre otomatik çıksın.
-                      </p>
-                    </div>
-                  </div>
 
-                  <button
-                    type="button"
-                    onClick={() => setIsAiGenOpen(!isAiGenOpen)}
-                    className="px-3 py-1.5 rounded-xl bg-indigo-600/30 hover:bg-indigo-600/50 border border-indigo-500/40 text-indigo-200 text-xs font-medium transition-all flex items-center gap-1"
-                  >
-                    <Wand2 className="w-3.5 h-3.5" />
-                    <span>{isAiGenOpen ? "Paneli Gizle" : "Prompt ile Doldur"}</span>
-                    {isAiGenOpen ? <ChevronUp className="w-3.5 h-3.5 ml-0.5" /> : <ChevronDown className="w-3.5 h-3.5 ml-0.5" />}
-                  </button>
+                        <button
+                          type="button"
+                          disabled={isGeneratingFromPrompt}
+                          onClick={handleGenerateFromPrompt}
+                          className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-semibold shadow-md flex items-center gap-2 transition-all disabled:opacity-50"
+                        >
+                          {isGeneratingFromPrompt ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                              <span>Sorular ve Süreler Çıkarılıyor...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Sparkles className="w-3.5 h-3.5" />
+                              <span>🚀 Soruları & Süreleri Otomatik Oluştur</span>
+                            </>
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-
-                {isAiGenOpen && (
-                  <div className="space-y-3 pt-2 border-t border-indigo-500/20 animate-fadeIn">
-                    <div className="flex items-center justify-between gap-2 flex-wrap">
-                      <label className="text-[11px] font-semibold text-slate-300">
-                        Araştırma Promptu, Guardrail ve Bağlam Metni:
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setAiPromptInput(PRINT_IT_RIGHT_PROMPT_TEMPLATE);
-                          setPromptGenError("");
-                        }}
-                        className="text-[11px] text-indigo-400 hover:text-indigo-300 underline font-medium flex items-center gap-1"
-                      >
-                        <span>📋 Örnek Print It Right Şablonunu Yükle</span>
-                      </button>
-                    </div>
-
-                    <textarea
-                      rows={6}
-                      value={aiPromptInput}
-                      onChange={(e) => setAiPromptInput(e.target.value)}
-                      placeholder="System Prompt, Guardrails ve Araştırma Bağlamı (Research Context) metnini buraya yapıştırın..."
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-indigo-500/30 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-indigo-400 font-mono leading-relaxed"
-                    />
-
-                    {promptGenError && (
-                      <div className="p-2.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 shrink-0" />
-                        <span>{promptGenError}</span>
-                      </div>
-                    )}
-
-                    {promptGenSuccess && (
-                      <div className="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4 shrink-0" />
-                        <span>{promptGenSuccess}</span>
-                      </div>
-                    )}
-
-                    <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
-                      <span className="text-[10px] text-slate-400">
-                        * Süreler bilişsel talebe göre 30 sn katlarında belirlenir. Uygunluk ve takip soruları üretilmez.
-                      </span>
-
-                      <button
-                        type="button"
-                        disabled={isGeneratingFromPrompt}
-                        onClick={handleGenerateFromPrompt}
-                        className="px-4 py-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white text-xs font-semibold shadow-md flex items-center gap-2 transition-all disabled:opacity-50"
-                      >
-                        {isGeneratingFromPrompt ? (
-                          <>
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            <span>Sorular ve Süreler Çıkarılıyor...</span>
-                          </>
-                        ) : (
-                          <>
-                            <Sparkles className="w-3.5 h-3.5" />
-                            <span>🚀 Soruları & Süreleri Otomatik Oluştur</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              )}
 
               <form onSubmit={handleSaveNewSurvey} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2494,8 +2636,6 @@ function AdminDashboardContent() {
                         <span>
                           {surveyModalMode === "edit"
                             ? "Değişiklikleri Kaydet"
-                            : surveyModalMode === "duplicate"
-                            ? "Yeni Versiyonu Canlıya Al (V2)"
                             : "Anketi Canlıya Al"}
                         </span>
                       </>

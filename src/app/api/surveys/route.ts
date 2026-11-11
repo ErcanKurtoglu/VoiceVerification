@@ -58,15 +58,22 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const {
       title,
+      titleEn,
       tagline,
+      taglineEn,
       description,
+      descriptionEn,
       caseAnchor,
       caseAnchorEn,
       targetAudience,
+      targetAudienceEn,
       estimatedMinutes = 3,
       aiContext,
+      aiContextEn,
       accessPin,
       questions,
+      id: customId,
+      slug: customSlug,
     } = body;
 
     if (!title || !description || !accessPin || !questions || questions.length === 0) {
@@ -94,7 +101,7 @@ export async function POST(req: NextRequest) {
     }
 
     const cleanPin = accessPin.trim().toUpperCase();
-    const slug = title
+    const autoSlug = title
       .toLowerCase()
       .trim()
       .replace(/ğ/g, "g")
@@ -106,7 +113,8 @@ export async function POST(req: NextRequest) {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
-    const surveyId = slug || `survey-${Date.now()}`;
+    const surveyId = customId || customSlug || autoSlug || `survey-${Date.now()}`;
+    const finalSlug = customSlug || autoSlug || surveyId;
 
     // PIN benzersizlik denetimi
     const { data: existingPin } = await supabaseAdmin
@@ -122,9 +130,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const payload = {
+    const payload: Record<string, any> = {
       id: surveyId,
-      slug: surveyId,
+      slug: finalSlug,
       title: title.trim(),
       tagline: (tagline || "Sektörel Doğrulama").trim(),
       description: description.trim(),
@@ -136,6 +144,14 @@ export async function POST(req: NextRequest) {
       is_active: true,
       updated_at: new Date().toISOString(),
     };
+
+    if (titleEn) payload.title_en = titleEn.trim();
+    if (taglineEn) payload.tagline_en = taglineEn.trim();
+    if (descriptionEn) payload.description_en = descriptionEn.trim();
+    if (caseAnchor) payload.case_anchor = caseAnchor.trim();
+    if (caseAnchorEn) payload.case_anchor_en = caseAnchorEn.trim();
+    if (targetAudienceEn) payload.target_audience_en = targetAudienceEn.trim();
+    if (aiContextEn) payload.ai_context_en = aiContextEn.trim();
 
     const { error: upsertErr } = await supabaseAdmin
       .from("surveys")
