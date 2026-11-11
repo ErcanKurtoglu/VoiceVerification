@@ -230,4 +230,42 @@ describe("Survey Versioning (Duplicate V2) & Question-Level AI Copilot", () => {
       assert.equal(check.error, undefined);
     }
   });
+
+  test("9. Katılımcı Rolü Sanitizasyonu ve Fallback Koruması: getSanitizedParticipantRole", async () => {
+    const { getSanitizedParticipantRole } = await import("../src/lib/utils.ts");
+
+    // Geçerli unvanlar
+    assert.equal(getSanitizedParticipantRole("Bakım Mühendisi", "tr"), "Bakım Mühendisi");
+    assert.equal(getSanitizedParticipantRole("Procurement Lead", "en"), "Procurement Lead");
+
+    // Boş / tanımsız unvanlar
+    assert.equal(getSanitizedParticipantRole("", "tr"), "Saha Uzmanı / Katılımcı");
+    assert.equal(getSanitizedParticipantRole(undefined, "en"), "Domain Expert / Participant");
+
+    // Klavye tuşlaması (mash) veya anlamsız unvanlar
+    assert.equal(getSanitizedParticipantRole("asdasd", "tr"), "Saha Uzmanı / Katılımcı");
+    assert.equal(getSanitizedParticipantRole("qwerty", "en"), "Domain Expert / Participant");
+    assert.equal(getSanitizedParticipantRole("---", "tr"), "Saha Uzmanı / Katılımcı");
+  });
+
+  test("10. AI Asistan Rol Uyarlama Mekanizması: Kullanıcının unvanına göre soruyu yorumlama", async () => {
+    const roleQuery = "Benim görevimdeki (Satın Alma Uzmanı) biri bu soruyu nasıl yorumlayabilir?";
+    const response = await aiService.chatClarification({
+      questionTitle: "S4 — Adımlar, Bilgiler ve Gecikmeler",
+      questionDescription: "Parçayı tanımlamak ve tedarik etmek için sonrasında neler yapıldı?",
+      questionHint: "Kendi rolünüzden bildiğiniz adımları anlatın.",
+      userQuery: roleQuery,
+      conversationHistory: [],
+      projectContext: "Print It Right Araştırma Bağlamı",
+      lang: "tr",
+      participantRole: "Satın Alma Uzmanı",
+      participantCompany: "Gıda A.Ş.",
+    });
+
+    assert.ok(response.length > 30, "AI asistanı rol odaklı rehberlik yanıtı üretmelidir");
+    assert.ok(
+      response.includes("Satın Alma Uzmanı") || response.includes("yetki") || response.includes("rol"),
+      "Yanıtta rol ve sınır vurgusu bulunmalıdır"
+    );
+  });
 });

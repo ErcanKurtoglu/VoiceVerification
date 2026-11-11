@@ -6,6 +6,7 @@ import { Question } from "@/types/interview";
 import { ChatMessage } from "@/services/ai/interface";
 import { useLanguage } from "@/context/LanguageContext";
 import { Language, getLocalizedText } from "@/lib/i18n";
+import { getSanitizedParticipantRole } from "@/lib/utils";
 
 interface AssistantDrawerProps {
   isOpen: boolean;
@@ -34,10 +35,26 @@ export const AssistantDrawer: React.FC<AssistantDrawerProps> = ({
 
   if (!isOpen) return null;
 
-  const quickPrompts = t.assistantQuickPrompts || [
-    "Bana somut bir örnek verir misiniz?",
-    "Bu soruda tam olarak neyi kastediyorsunuz?",
-    "Bu veri projenizde nasıl kullanılacak?",
+  const sanitizedRole = getSanitizedParticipantRole(participantRole, activeLang);
+
+  const rolePrompt =
+    activeLang === "en"
+      ? `📌 How should someone in my role (${sanitizedRole}) approach or interpret this question?`
+      : `📌 Benim görevimdeki (${sanitizedRole}) biri bu soruyu nasıl yorumlayabilir?`;
+
+  const quickPrompts = [
+    rolePrompt,
+    ...(t.assistantQuickPrompts || [
+      activeLang === "en"
+        ? "Could you give a grounded concrete example?"
+        : "Bana somut bir örnek verir misiniz?",
+      activeLang === "en"
+        ? "What exactly does this question ask for?"
+        : "Bu soruda tam olarak neyi kastediyorsunuz?",
+      activeLang === "en"
+        ? "Should I share proprietary or confidential data?"
+        : "Gizli şirket veya ticari verileri paylaşmalı mıyım?",
+    ]),
   ];
 
   const sendMessage = async (textToSend?: string) => {
@@ -62,7 +79,7 @@ export const AssistantDrawer: React.FC<AssistantDrawerProps> = ({
           userQuery: text,
           conversationHistory: messages,
           projectContext,
-          participantRole,
+          participantRole: sanitizedRole,
           participantCompany,
         }),
       });

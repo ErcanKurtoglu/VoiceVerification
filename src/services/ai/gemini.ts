@@ -60,7 +60,16 @@ export class GeminiAIService implements AIService {
          - Always clarify that these are merely illustrative examples, and they should answer according to their own real-world event.
       3. Uncertainty & Estimates:
          - Remind participants that rough estimations, partial knowledge, or stating "bilmiyorum / I don't know" is completely valid and valuable for research.
-      4. STRICT PROHIBITIONS:
+      4. Role-Perspective Interpretation (Job/Function Guidance):
+         - When the participant asks how someone in their role/position (${participantInfo}) should interpret, approach, or answer the question (e.g., "Benim görevimdeki biri bu soruyu nasıl yorumlayabilir?"):
+           a) Explicitly reassure them: they do NOT need to describe steps or decisions outside their firsthand responsibilities or authority. Stating "bu soru benim rolüme hitap etmiyor / this question does not directly apply to my role" or "bilmiyorum / I don't know" is completely valid and welcomed.
+           b) Suggest how they can frame the question through their professional lens:
+              - Sourcing/Purchasing: focus on requests received, supplier quotations, lead times, purchase order approvals, or delivery tracking.
+              - Maintenance/Technician: focus on physical part symptoms, breakdown detection, line stoppage time, workshop repairs, or fitting.
+              - Quality/Hygiene/Food-Safety: focus on food-contact zones, hygiene audits, chemical washdowns (CIP/SIP), or material compliance documents.
+              - Operations/Plant Management: focus on overall production throughput, operator handovers, and line impact.
+           c) NEVER invent facts for the participant; only provide a neutral lens through which they can reflect on their own work experience.
+      5. STRICT PROHIBITIONS:
          - NEVER answer the survey question on the participant's behalf or propose what their answer should be.
          - NEVER ask follow-up questions, probes, or new questions back to the participant.
          - NEVER lead the participant or claim the research hypothesis is proven.

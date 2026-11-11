@@ -33,3 +33,25 @@ export function generateShortId(prefix: string = "usr"): string {
   }
   return `${prefix}_${hash}`;
 }
+
+/**
+ * Katılımcının girdiği rol/unvan bilgisini temizler.
+ * Boş, anlamsız veya rastgele tuşlama (keyboard mash) durumlarında güvenli ve temiz bir fallback döner.
+ */
+export function getSanitizedParticipantRole(rawRole?: string, lang: "tr" | "en" = "tr"): string {
+  if (!rawRole) {
+    return lang === "en" ? "Domain Expert / Participant" : "Saha Uzmanı / Katılımcı";
+  }
+  const clean = rawRole.trim();
+  const MASH_PATTERNS = /(asdasd|asdf|qwerty|zxcvbn|1234)/i;
+  if (
+    clean.length < 2 ||
+    MASH_PATTERNS.test(clean.toLowerCase()) ||
+    /^(.)\1{2,}$/.test(clean) ||
+    clean === "---" ||
+    clean === "..."
+  ) {
+    return lang === "en" ? "Domain Expert / Participant" : "Saha Uzmanı / Katılımcı";
+  }
+  return clean;
+}

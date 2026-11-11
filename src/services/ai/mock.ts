@@ -43,6 +43,22 @@ export class MockAIService implements AIService {
       return "Bu anket teknik uygunluk, malzeme seçimi veya gıda güvenliği tavsiyesi veremez. Lütfen yetkili bir mühendise veya uzmana danışınız. Yalnızca sorunun anlam ve kapsamını açıklayabilirim.";
     }
 
+    // Guardrail: Rol perspektifinden yorumlama (Role-perspective interpretation)
+    if (
+      q.includes("nasıl yorumla") ||
+      q.includes("görev") ||
+      q.includes("rol") ||
+      q.includes("approach") ||
+      q.includes("interpret") ||
+      q.includes("role")
+    ) {
+      const roleName = params.participantRole || (isEn ? "your role" : "göreviniz");
+      if (isEn) {
+        return `As a ${roleName}, you do not need to cover details outside your authority. You can focus on the aspects touching your daily workflow (such as handoffs, observations, or communications), or state that this question does not directly apply to your responsibilities.`;
+      }
+      return `Bir ${roleName} olarak, yetki ve uzmanlığınız dışındaki detayları açıklamak zorunda değilsiniz. Yalnızca kendi iş akışınıza temas eden kısımları (ör. size gelen bildirimler, devirler veya yürüttüğünüz adımlar) aktarabilir veya bu sorunun doğrudan görevinizle ilgili olmadığını belirtebilirsiniz.`;
+    }
+
     // Guardrail: Terim / Kapsam netleştirmesi (Neutral explanation)
     if (q.includes("ne demek") || q.includes("mean") || q.includes("kapsam") || q.includes("scope")) {
       if (isEn) {

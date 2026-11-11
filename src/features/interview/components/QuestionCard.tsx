@@ -172,9 +172,47 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       <h2 className="text-xl md:text-2xl font-bold text-white tracking-tight leading-snug mb-3">
         {getLocalizedText(question, "title", lang)}
       </h2>
-      <p className="text-xs md:text-sm text-slate-300 leading-relaxed mb-6">
+      <p className="text-xs md:text-sm text-slate-300 leading-relaxed mb-3.5">
         {getLocalizedText(question, "description", lang)}
       </p>
+
+      {/* Sabit Rol & Kapsam Güvencesi Notu (Tüm sorularda sabit rehberlik) */}
+      <div className="p-3 mb-6 rounded-2xl bg-slate-800/60 border border-slate-700/60 text-slate-300 text-xs flex items-start gap-2.5">
+        <Sparkles className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
+        <p className="leading-relaxed text-[11.5px] text-slate-300">
+          {lang === "en" ? (
+            <>
+              <strong className="text-slate-100 font-semibold">Scope & Role Notice: </strong>
+              If this question does not directly match your specific responsibilities, you may simply state{" "}
+              <span className="text-indigo-300 font-medium">&quot;This question does not apply to my role&quot;</span>{" "}
+              or answer only the aspects related to your work. You can also consult the{" "}
+              <button
+                type="button"
+                onClick={() => setIsAssistantOpen(true)}
+                className="text-indigo-400 hover:text-indigo-300 underline font-medium inline cursor-pointer"
+              >
+                AI Copilot
+              </button>{" "}
+              to ask how someone in your position can frame this question.
+            </>
+          ) : (
+            <>
+              <strong className="text-slate-100 font-semibold">Rol & Kapsam Notu: </strong>
+              Bu sorunun durumunuzla doğrudan ilgili olmadığını düşünüyorsanız;{" "}
+              <span className="text-indigo-300 font-medium">&quot;Bu soru benim rolüme hitap etmiyor&quot;</span>{" "}
+              diyebilir veya yalnızca görevinizle kesişen yönleriyle yanıtlayabilirsiniz. Dilerseniz{" "}
+              <button
+                type="button"
+                onClick={() => setIsAssistantOpen(true)}
+                className="text-indigo-400 hover:text-indigo-300 underline font-medium inline cursor-pointer"
+              >
+                AI Asistan&apos;a
+              </button>{" "}
+              kendi göreviniz açısından soruyu nasıl ele alabileceğinizi sorabilirsiniz.
+            </>
+          )}
+        </p>
+      </div>
 
       {/* Ses / Metin Modu Sekmeleri */}
       <div className="flex items-center justify-center p-1 rounded-2xl bg-slate-800/80 border border-slate-700/70 max-w-xs mx-auto mb-6">
