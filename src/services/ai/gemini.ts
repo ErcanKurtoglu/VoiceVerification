@@ -1,5 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
-import { AIService, ChatMessage, TranscribeResult, GeneratedSurveyResult } from "./interface";
+import {
+  AIService,
+  ChatMessage,
+  TranscribeResult,
+  GeneratedSurveyResult,
+  ClarifyQuestionInput,
+  ClarifyQuestionOutput,
+} from "./interface";
 
 export class GeminiAIService implements AIService {
   private client: GoogleGenAI;
@@ -306,6 +313,67 @@ export class GeminiAIService implements AIService {
       totalMaxSpeakingSeconds,
       estimatedMinutes,
     };
+  }
+
+  async clarifyQuestionSpec(params: ClarifyQuestionInput): Promise<ClarifyQuestionOutput> {
+    const prompt = `
+      You are an expert qualitative B2B research methodology copilot and AI prompt architect for "Print It Right" and industrial manufacturing discovery surveys.
+      The user provides a question title (and optionally the current description and survey context).
+      Your task is to generate:
+      1. A professional, clear question description ("description" in Turkish, "descriptionEn" in English) that clearly defines the scope and what the participant is expected to reflect on.
+      2. An in-depth AI Assistant Clarification Hint ("clarificationHint" in Turkish, "clarificationHintEn" in English):
+         - Grounded, neutral hypothetical examples from industrial/manufacturing equipment (e.g. guide rails, nozzle gaskets, CIP washdowns, bearings, lead times, purchase orders).
+         - Scope boundaries (e.g. "proprietary serial numbers or confidential drawings are not needed").
+         - Validation that rough estimates or partial memory are welcome.
+      3. Suggested duration in seconds ("suggestedDurationSec": 30 or 60).
+
+      Output MUST be valid JSON adhering strictly to:
+      {
+        "description": "...",
+        "descriptionEn": "...",
+        "clarificationHint": "...",
+        "clarificationHintEn": "...",
+        "suggestedDurationSec": 60
+      }
+
+      Input details:
+      Survey Title: ${params.surveyTitle || "Industrial Equipment Research"}
+      Question Title: ${params.questionTitle}
+      Current Description: ${params.currentDescription || "None"}
+    `;
+
+    try {
+      const response = await this.client.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          temperature: 0.2,
+        },
+      });
+
+      const text = response.text?.trim() || "{}";
+      const parsed = JSON.parse(text);
+
+      return {
+        description: parsed.description || "Lütfen sahadaki somut deneyiminizi sade bir dille özetleyiniz.",
+        descriptionEn: parsed.descriptionEn || "Please describe your real-world experience in plain terms.",
+        clarificationHint: parsed.clarificationHint || "Bu soruda tek bir somut olaya odaklanabilirsiniz. Kesin model kodu veya gizli detaylar vermenize gerek yoktur.",
+        clarificationHintEn: parsed.clarificationHintEn || "Focus on one specific event. Proprietary part numbers or drawings are not required.",
+        suggestedDurationSec: Number(parsed.suggestedDurationSec) === 30 ? 30 : 60,
+      };
+    } catch (err) {
+      console.error("[Gemini] clarifyQuestionSpec error:", err);
+      return {
+        description: params.currentDescription?.trim()
+          ? params.currentDescription.trim()
+          : `${params.questionTitle} konusunda sahadaki somut deneyiminizi, sürecin nasıl işlediğini ve karşılaştığınız durumları sade bir dille özetler misiniz?`,
+        descriptionEn: `Could you describe your concrete on-site experience regarding ${params.questionTitle}?`,
+        clarificationHint: `Bu soruda tek bir somut olaya odaklanın. Süreçteki rolünüzü, atılan adımları veya karşılaşılan engelleri düşünebilirsiniz. Gizli şirket detayları vermenize gerek yoktur.`,
+        clarificationHintEn: `Focus on one specific real-world incident. Exact part numbers or confidential details are not needed.`,
+        suggestedDurationSec: 60,
+      };
+    }
   }
 }
 

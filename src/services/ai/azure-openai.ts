@@ -4,6 +4,8 @@ import {
   TranscribeResult,
   GeneratedSurveyResult,
   GeneratedQuestion,
+  ClarifyQuestionInput,
+  ClarifyQuestionOutput,
 } from "./interface";
 import { GeminiAIService } from "./gemini";
 
@@ -296,6 +298,86 @@ export class AzureOpenAIAIService implements AIService {
         return this.geminiService.generateSurveyFromPrompt(rawPrompt);
       }
       throw err;
+    }
+  }
+
+  async clarifyQuestionSpec(params: ClarifyQuestionInput): Promise<ClarifyQuestionOutput> {
+    const url = `${this.endpoint}/openai/deployments/${this.deployment}/chat/completions?api-version=${this.apiVersion}`;
+
+    const systemPrompt = `
+      You are an expert qualitative B2B research methodology copilot and AI prompt architect for "Print It Right" and industrial manufacturing discovery surveys.
+      The user provides a question title (and optionally the current description and survey context).
+      Your task is to generate:
+      1. A professional, clear question description ("description" in Turkish, "descriptionEn" in English) that clearly defines the scope and what the participant is expected to reflect on.
+      2. An in-depth AI Assistant Clarification Hint ("clarificationHint" in Turkish, "clarificationHintEn" in English):
+         - Grounded, neutral hypothetical examples from industrial/manufacturing equipment (e.g. guide rails, nozzle gaskets, CIP washdowns, bearings, lead times, purchase orders).
+         - Scope boundaries (e.g. "proprietary serial numbers or confidential drawings are not needed").
+         - Validation that rough estimates or partial memory are welcome.
+      3. Suggested duration in seconds ("suggestedDurationSec": 30 or 60).
+
+      Output MUST be valid JSON adhering strictly to:
+      {
+        "description": "...",
+        "descriptionEn": "...",
+        "clarificationHint": "...",
+        "clarificationHintEn": "...",
+        "suggestedDurationSec": 60
+      }
+    `;
+
+    const userPrompt = `
+      Survey Title: ${params.surveyTitle || "Industrial Equipment Research"}
+      Question Title: ${params.questionTitle}
+      Current Description: ${params.currentDescription || "None"}
+    `;
+
+    try {
+      const res = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "api-key": this.apiKey,
+        },
+        body: JSON.stringify({
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt },
+          ],
+          response_format: { type: "json_object" },
+          temperature: 0.2,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Azure OpenAI clarifyQuestionSpec failed: ${res.status}`);
+      }
+
+      const data = await res.json();
+      const content = data.choices?.[0]?.message?.content || "{}";
+      const parsed = JSON.parse(content);
+
+      return {
+        description: parsed.description || "Lütfen sahadaki somut deneyiminizi sade bir dille özetleyiniz.",
+        descriptionEn: parsed.descriptionEn || "Please describe your real-world experience in plain terms.",
+        clarificationHint: parsed.clarificationHint || "Bu soruda tek bir somut olaya odaklanabilirsiniz. Kesin model kodu veya gizli detaylar vermenize gerek yoktur.",
+        clarificationHintEn: parsed.clarificationHintEn || "Focus on one specific event. Proprietary part numbers or drawings are not required.",
+        suggestedDurationSec: Number(parsed.suggestedDurationSec) === 30 ? 30 : 60,
+      };
+    } catch (err) {
+      console.error("[AzureOpenAI] clarifyQuestionSpec exception:", err);
+      if (this.geminiService) {
+        console.log("[AzureOpenAI] Falling back to Gemini for clarifyQuestionSpec...");
+        return this.geminiService.clarifyQuestionSpec(params);
+      }
+      return {
+        description: params.currentDescription?.trim()
+          ? params.currentDescription.trim()
+          : `${params.questionTitle} konusunda sahadaki somut deneyiminizi, sürecin nasıl işlediğini ve karşılaştığınız durumları sade bir dille özetler misiniz?`,
+        descriptionEn: `Could you describe your concrete on-site experience regarding ${params.questionTitle}?`,
+        clarificationHint: `Bu soruda tek bir somut olaya odaklanın. Süreçteki rolünüzü, atılan adımları veya karşılaşılan engelleri düşünebilirsiniz. Gizli şirket detayları vermenize gerek yoktur.`,
+        clarificationHintEn: `Focus on one specific real-world incident. Exact part numbers or confidential details are not needed.`,
+        suggestedDurationSec: 60,
+      };
     }
   }
 }

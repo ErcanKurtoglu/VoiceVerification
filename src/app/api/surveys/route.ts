@@ -170,7 +170,25 @@ export async function PATCH(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { id, accessPin, title, description, tagline, targetAudience, estimatedMinutes, aiContext, isActive } = body;
+    const {
+      id,
+      accessPin,
+      title,
+      titleEn,
+      description,
+      descriptionEn,
+      tagline,
+      taglineEn,
+      caseAnchor,
+      caseAnchorEn,
+      targetAudience,
+      targetAudienceEn,
+      estimatedMinutes,
+      aiContext,
+      aiContextEn,
+      isActive,
+      questions,
+    } = body;
 
     if (!id) {
       return NextResponse.json({ error: "Anket ID zorunludur." }, { status: 400 });
@@ -203,11 +221,40 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (title) updates.title = title.trim();
+    if (titleEn !== undefined) updates.title_en = titleEn.trim();
     if (description) updates.description = description.trim();
+    if (descriptionEn !== undefined) updates.description_en = descriptionEn.trim();
     if (tagline) updates.tagline = tagline.trim();
+    if (taglineEn !== undefined) updates.tagline_en = taglineEn.trim();
+    if (caseAnchor !== undefined) updates.case_anchor = caseAnchor.trim();
+    if (caseAnchorEn !== undefined) updates.case_anchor_en = caseAnchorEn.trim();
     if (targetAudience !== undefined) updates.target_audience = targetAudience.trim();
+    if (targetAudienceEn !== undefined) updates.target_audience_en = targetAudienceEn.trim();
     if (estimatedMinutes !== undefined) updates.estimated_minutes = Number(estimatedMinutes);
     if (aiContext !== undefined) updates.ai_context = aiContext.trim();
+    if (aiContextEn !== undefined) updates.ai_context_en = aiContextEn.trim();
+
+    if (questions !== undefined && Array.isArray(questions)) {
+      if (questions.length === 0) {
+        return NextResponse.json({ error: "Ankette en az bir soru bulunmalıdır." }, { status: 400 });
+      }
+      for (let i = 0; i < questions.length; i++) {
+        const q = questions[i];
+        const validation = validateSurveyQuestion(q);
+        if (!validation.isValid) {
+          return NextResponse.json(
+            { error: `Soru #${i + 1}: ${validation.error}` },
+            { status: 400 }
+          );
+        }
+      }
+      if (caseAnchor && questions[0]) questions[0].caseAnchor = caseAnchor;
+      if (caseAnchorEn && questions[0]) questions[0].caseAnchorEn = caseAnchorEn;
+      updates.questions = questions;
+
+      const totalSec = questions.reduce((sum: number, q: any) => sum + (Number(q.maxDurationSec) || 60), 0);
+      updates.estimated_minutes = Math.max(1, Math.ceil(totalSec / 60));
+    }
 
     const { error } = await supabaseAdmin
       .from("surveys")

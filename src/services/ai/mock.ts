@@ -1,4 +1,11 @@
-import type { AIService, ChatMessage, TranscribeResult, GeneratedSurveyResult } from "./interface.ts";
+import type {
+  AIService,
+  ChatMessage,
+  TranscribeResult,
+  GeneratedSurveyResult,
+  ClarifyQuestionInput,
+  ClarifyQuestionOutput,
+} from "./interface.ts";
 
 export class MockAIService implements AIService {
   async chatClarification(params: {
@@ -162,6 +169,21 @@ export class MockAIService implements AIService {
       questions,
       totalMaxSpeakingSeconds,
       estimatedMinutes,
+    };
+  }
+
+  async clarifyQuestionSpec(params: ClarifyQuestionInput): Promise<ClarifyQuestionOutput> {
+    const title = params.questionTitle;
+    const cleanDesc = params.currentDescription?.trim();
+
+    return {
+      description: cleanDesc
+        ? cleanDesc
+        : `${title} konusunda sahadaki somut deneyiminizi, sürecin nasıl işlediğini ve karşılaştığınız durumları sade bir dille özetler misiniz?`,
+      descriptionEn: `Could you describe your concrete on-site experience, the sequence of events, and any challenges encountered regarding ${title}?`,
+      clarificationHint: `Bu soruda tek bir somut olaya odaklanın. Süreçteki rolünüzü, atılan adımları veya karşılaşılan engelleri (ör. parça tespiti, tedarikçi gecikmesi, onay süreçleri) düşünebilirsiniz. Kesin ticari veya gizli detaylar vermenize gerek yoktur.`,
+      clarificationHintEn: `Focus on one specific real-world event. Consider the sequence of steps, key roles involved, or operational hurdles (e.g., part identification, vendor lead times, internal approvals). Proprietary serial numbers or confidential details are not needed.`,
+      suggestedDurationSec: 60,
     };
   }
 }

@@ -34,6 +34,21 @@ export interface GeneratedSurveyResult {
   estimatedMinutes: number; // Math.ceil(totalMaxSpeakingSeconds / 60)
 }
 
+export interface ClarifyQuestionInput {
+  surveyTitle?: string;
+  questionTitle: string;
+  currentDescription?: string;
+  lang?: "tr" | "en";
+}
+
+export interface ClarifyQuestionOutput {
+  description: string;
+  descriptionEn?: string;
+  clarificationHint: string;
+  clarificationHintEn?: string;
+  suggestedDurationSec: number;
+}
+
 export interface AIService {
   chatClarification(params: {
     questionTitle: string;
@@ -55,5 +70,7 @@ export interface AIService {
   }): Promise<TranscribeResult>;
 
   generateSurveyFromPrompt(rawPrompt: string): Promise<GeneratedSurveyResult>;
+
+  clarifyQuestionSpec(params: ClarifyQuestionInput): Promise<ClarifyQuestionOutput>;
 }
 

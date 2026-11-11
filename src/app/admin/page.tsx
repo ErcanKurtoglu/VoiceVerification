@@ -37,6 +37,7 @@ import {
   PlayCircle,
   Wand2,
   X,
+  Edit3,
 } from "lucide-react";
 import { InterviewSession, SurveyConfig, Question } from "@/types/interview";
 import { getAllSurveys, PRINT_IT_RIGHT_SURVEY } from "@/surveys";
@@ -277,6 +278,13 @@ function AdminDashboardContent() {
   const [surveySaveError, setSurveySaveError] = useState("");
   const [surveySaveSuccess, setSurveySaveSuccess] = useState("");
 
+  // Anket Modalı Modu: "create" | "edit" | "duplicate"
+  const [surveyModalMode, setSurveyModalMode] = useState<"create" | "edit" | "duplicate">("create");
+  const [editingSurveyId, setEditingSurveyId] = useState<string | null>(null);
+  const [editingSurveySessionCount, setEditingSurveySessionCount] = useState<number>(0);
+  const [clarifyingQuestionIndex, setClarifyingQuestionIndex] = useState<number | null>(null);
+  const [clarifySuccessIndex, setClarifySuccessIndex] = useState<number | null>(null);
+
   // AI Prompt ile Otomatik Üretim State
   const [isAiGenOpen, setIsAiGenOpen] = useState(false);
   const [aiPromptInput, setAiPromptInput] = useState("");
@@ -285,6 +293,9 @@ function AdminDashboardContent() {
   const [promptGenSuccess, setPromptGenSuccess] = useState("");
 
   const handleOpenNewSurveyModal = () => {
+    setSurveyModalMode("create");
+    setEditingSurveyId(null);
+    setEditingSurveySessionCount(0);
     setNewSurveyTitle("");
     setNewSurveyTagline("");
     setNewSurveyDesc("");
@@ -302,6 +313,120 @@ function AdminDashboardContent() {
     setPromptGenSuccess("");
     setIsAiGenOpen(false);
     setIsNewSurveyModalOpen(true);
+  };
+
+  // Düzenleme Modalı Açma
+  const handleOpenEditSurveyModal = (survey: SurveyConfig, pin: string) => {
+    const sessionCount = sessions.filter((s) => isSurveyMatch(s.projectId, survey.id)).length;
+    setSurveyModalMode("edit");
+    setEditingSurveyId(survey.id);
+    setEditingSurveySessionCount(sessionCount);
+
+    setNewSurveyTitle(survey.title || "");
+    setNewSurveyTagline(survey.tagline || "");
+    setNewSurveyDesc(survey.description || "");
+    setNewSurveyCaseAnchor(survey.caseAnchor || "");
+    setNewSurveyCaseAnchorEn(survey.caseAnchorEn || "");
+    setNewSurveyPin(pin && pin !== "KOD-YOK" ? pin : "");
+    setNewSurveyAiContext(survey.aiContext || "");
+    setNewSurveyQuestions(
+      survey.questions?.length
+        ? survey.questions.map((q) => ({
+            title: q.title || "",
+            titleEn: q.titleEn || "",
+            description: q.description || "",
+            descriptionEn: q.descriptionEn || "",
+            clarificationHint: q.clarificationHint || "",
+            clarificationHintEn: q.clarificationHintEn || "",
+            maxDurationSec: q.maxDurationSec || 90,
+          }))
+        : [{ title: "", description: "", clarificationHint: "", maxDurationSec: 90 }]
+    );
+    setSurveySaveError("");
+    setSurveySaveSuccess("");
+    setIsAiGenOpen(false);
+    setIsNewSurveyModalOpen(true);
+  };
+
+  // Çoğaltma (Duplicate / V2) Modalı Açma
+  const handleOpenDuplicateSurveyModal = (survey: SurveyConfig, pin: string) => {
+    setSurveyModalMode("duplicate");
+    setEditingSurveyId(null);
+    setEditingSurveySessionCount(0);
+
+    const v2Title = survey.title.includes("V2") ? `${survey.title} (Kopya)` : `${survey.title} (V2)`;
+    const v2Pin = pin && pin !== "KOD-YOK" ? `${pin}-V2` : "";
+
+    setNewSurveyTitle(v2Title);
+    setNewSurveyTagline(survey.tagline || "");
+    setNewSurveyDesc(survey.description || "");
+    setNewSurveyCaseAnchor(survey.caseAnchor || "");
+    setNewSurveyCaseAnchorEn(survey.caseAnchorEn || "");
+    setNewSurveyPin(v2Pin);
+    setNewSurveyAiContext(survey.aiContext || "");
+    setNewSurveyQuestions(
+      survey.questions?.length
+        ? survey.questions.map((q) => ({
+            title: q.title || "",
+            titleEn: q.titleEn || "",
+            description: q.description || "",
+            descriptionEn: q.descriptionEn || "",
+            clarificationHint: q.clarificationHint || "",
+            clarificationHintEn: q.clarificationHintEn || "",
+            maxDurationSec: q.maxDurationSec || 90,
+          }))
+        : [{ title: "", description: "", clarificationHint: "", maxDurationSec: 90 }]
+    );
+    setSurveySaveError("");
+    setSurveySaveSuccess("");
+    setIsAiGenOpen(false);
+    setIsNewSurveyModalOpen(true);
+  };
+
+  // Soru Başına AI Asistan Kapsamı Üretme
+  const handleClarifyQuestion = async (idx: number) => {
+    const q = newSurveyQuestions[idx];
+    if (!q || !q.title.trim()) return;
+
+    setClarifyingQuestionIndex(idx);
+    setClarifySuccessIndex(null);
+
+    try {
+      const res = await fetch("/api/surveys/clarify-question", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          surveyTitle: newSurveyTitle.trim() || undefined,
+          questionTitle: q.title.trim(),
+          currentDescription: q.description.trim() || undefined,
+          lang: "tr",
+        }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.data) {
+        throw new Error(json.error || "AI soru bağlamı üretilemedi.");
+      }
+
+      const updated = [...newSurveyQuestions];
+      updated[idx] = {
+        ...updated[idx],
+        description: json.data.description || updated[idx].description,
+        descriptionEn: json.data.descriptionEn || updated[idx].descriptionEn,
+        clarificationHint: json.data.clarificationHint || updated[idx].clarificationHint,
+        clarificationHintEn: json.data.clarificationHintEn || updated[idx].clarificationHintEn,
+        maxDurationSec: json.data.suggestedDurationSec || updated[idx].maxDurationSec || 60,
+      };
+
+      setNewSurveyQuestions(updated);
+      setClarifySuccessIndex(idx);
+      setTimeout(() => setClarifySuccessIndex(null), 3500);
+    } catch (err: unknown) {
+      console.error("AI clarify question error:", err);
+      alert((err as Error).message || "AI soru bağlamı üretilirken bir hata oluştu.");
+    } finally {
+      setClarifyingQuestionIndex(null);
+    }
   };
 
   // Toplam maksimum konuşma süresi (dahil edilen soruların konuşma sürelerinin tam aritmetik toplamı)
@@ -572,8 +697,11 @@ function AdminDashboardContent() {
       }
     }
 
+    const isEditMode = surveyModalMode === "edit";
+    const isQuestionsLocked = isEditMode && editingSurveySessionCount > 0;
+
     const formattedQuestions: Question[] = newSurveyQuestions.map((q, idx) => ({
-      id: `q${idx + 1}_${Date.now()}`,
+      id: (q as any).id || `q${idx + 1}_${Date.now()}`,
       order: idx + 1,
       title: q.title.trim(),
       titleEn: q.titleEn?.trim() || undefined,
@@ -589,29 +717,45 @@ function AdminDashboardContent() {
     setIsSavingSurvey(true);
 
     try {
-      const res = await fetch("/api/surveys", {
-        method: "POST",
+      const endpoint = "/api/surveys";
+      const method = isEditMode ? "PUT" : "POST";
+      const payload: Record<string, any> = {
+        title: newSurveyTitle.trim(),
+        tagline: newSurveyTagline.trim() || "Doğrulama",
+        description: newSurveyDesc.trim(),
+        caseAnchor: newSurveyCaseAnchor.trim() || undefined,
+        caseAnchorEn: newSurveyCaseAnchorEn.trim() || undefined,
+        accessPin: newSurveyPin.trim().toUpperCase(),
+        aiContext: newSurveyAiContext.trim() || newSurveyDesc.trim(),
+        estimatedMinutes: calculatedEstimatedMinutes,
+      };
+
+      if (isEditMode) {
+        payload.id = editingSurveyId;
+        if (!isQuestionsLocked) {
+          payload.questions = formattedQuestions;
+        }
+      } else {
+        payload.questions = formattedQuestions;
+      }
+
+      const res = await fetch(endpoint, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: newSurveyTitle.trim(),
-          tagline: newSurveyTagline.trim() || "Doğrulama",
-          description: newSurveyDesc.trim(),
-          caseAnchor: newSurveyCaseAnchor.trim() || undefined,
-          caseAnchorEn: newSurveyCaseAnchorEn.trim() || undefined,
-          accessPin: newSurveyPin.trim().toUpperCase(),
-          aiContext: newSurveyAiContext.trim() || newSurveyDesc.trim(),
-          estimatedMinutes: calculatedEstimatedMinutes,
-          questions: formattedQuestions,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Anket kaydedilemedi.");
+        throw new Error(data.error || (isEditMode ? "Anket güncellenemedi." : "Anket kaydedilemedi."));
       }
 
-      setSurveySaveSuccess(`"${newSurveyTitle}" anketi (${data.accessPin} PIN kodu ile) başarıyla oluşturuldu ve canlıya alındı!`);
+      if (isEditMode) {
+        setSurveySaveSuccess(`"${newSurveyTitle}" anketi başarıyla güncellendi!`);
+      } else {
+        setSurveySaveSuccess(`"${newSurveyTitle}" anketi (${data.accessPin || newSurveyPin} PIN kodu ile) başarıyla oluşturuldu ve canlıya alındı!`);
+      }
       await fetchSurveys();
 
       // Formu sıfırla
@@ -1718,6 +1862,28 @@ function AdminDashboardContent() {
                           <span>{sv.isActive !== false ? "Pasife Al" : "Aktifleştir"}</span>
                         </button>
 
+                        {/* Düzenle Butonu */}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditSurveyModal(sv, pin)}
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-medium transition-all flex items-center gap-1 border border-slate-700 active:scale-95 cursor-pointer"
+                          title="Anket Ayarları ve Sorularını Düzenle"
+                        >
+                          <Edit3 className="w-3 h-3 text-indigo-400" />
+                          <span>Düzenle</span>
+                        </button>
+
+                        {/* Çoğalt (V2) Butonu */}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDuplicateSurveyModal(sv, pin)}
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 hover:text-emerald-200 text-[11px] font-medium transition-all flex items-center gap-1 border border-emerald-500/30 active:scale-95 cursor-pointer"
+                          title="Bu Anketi Yeni Versiyon (V2) Olarak Çoğalt"
+                        >
+                          <Copy className="w-3 h-3 text-emerald-400" />
+                          <span>Çoğalt (V2)</span>
+                        </button>
+
                         <button
                           onClick={() => handleOpenPinModal(sv.id, sv.title, pin)}
                           className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[11px] font-medium transition-all flex items-center gap-1 border border-slate-700 active:scale-95"
@@ -1766,23 +1932,72 @@ function AdminDashboardContent() {
               <div className="flex items-center justify-between pb-3 border-b border-slate-800">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
-                    <Layers className="w-4 h-4" />
+                    {surveyModalMode === "duplicate" ? (
+                      <Copy className="w-4 h-4 text-emerald-400" />
+                    ) : surveyModalMode === "edit" ? (
+                      <Edit3 className="w-4 h-4 text-indigo-400" />
+                    ) : (
+                      <Layers className="w-4 h-4" />
+                    )}
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-white">Yeni Anket Oluştur</h3>
+                    <h3 className="text-base font-bold text-white">
+                      {surveyModalMode === "duplicate"
+                        ? "Anketi Çoğalt (Yeni Versiyon - V2)"
+                        : surveyModalMode === "edit"
+                        ? `Anketi Düzenle: ${newSurveyTitle || "Seçili Anket"}`
+                        : "Yeni Anket Oluştur"}
+                    </h3>
                     <p className="text-xs text-slate-400">
-                      Anket bilgileri ve soru setini tanımlayın; otomatik olarak canlıya alınsın.
+                      {surveyModalMode === "duplicate"
+                        ? "Mevcut soru seti kopyalandı. Sıfır katılımcı ile bağımsız yeni versiyon oluşturulacak."
+                        : surveyModalMode === "edit"
+                        ? "Anket başlığı, genel açıklamaları veya sorularını güncelleyin."
+                        : "Anket bilgileri ve soru setini tanımlayın; otomatik olarak canlıya alınsın."}
                     </p>
                   </div>
                 </div>
 
                 <button
                   onClick={() => setIsNewSurveyModalOpen(false)}
-                  className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
+                  className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer"
                 >
                   ✕
                 </button>
               </div>
+
+              {/* Yanıt Almış Anket Koruma Uyarısı */}
+              {surveyModalMode === "edit" && editingSurveySessionCount > 0 && (
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
+                  <div className="flex items-start gap-2.5">
+                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                    <div>
+                      <strong className="block text-white">
+                        Bu Anket Yanıt Almıştır ({editingSurveySessionCount} katılımcı)
+                      </strong>
+                      <span className="text-[11px] text-amber-300/90 leading-relaxed block">
+                        Veri bütünlüğünü ve analiz tutarlılığını korumak için sorular kilitlenmiştir. Soruları eklemek, silmek veya değiştirmek için lütfen &quot;Yeni Versiyon Olarak Çoğalt (V2)&quot; seçeneğini kullanın.
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSurveyModalMode("duplicate");
+                      setEditingSurveyId(null);
+                      setEditingSurveySessionCount(0);
+                      setNewSurveyTitle((prev) =>
+                        prev.includes("V2") ? `${prev} (Kopya)` : `${prev} (V2)`
+                      );
+                      setNewSurveyPin((prev) => (prev ? `${prev}-V2` : ""));
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 text-[11px] font-semibold shrink-0 cursor-pointer transition-all flex items-center gap-1.5 active:scale-95"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>V2 Olarak Çoğalt</span>
+                  </button>
+                </div>
+              )}
 
               {surveySaveSuccess && (
                 <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
@@ -2017,160 +2232,218 @@ function AdminDashboardContent() {
 
                 {/* Dinamik Soru Listesi */}
                 <div className="pt-2 border-t border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <label className="text-xs font-semibold text-white flex items-center gap-1.5">
-                        <span>Anket Soruları ({newSurveyQuestions.length})</span>
-                        <span className="text-[11px] font-normal text-slate-400">
-                          (Şablon metinler engellenir, gerçek soru girilmelidir)
-                        </span>
-                      </label>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setNewSurveyQuestions([
-                          ...newSurveyQuestions,
-                          {
-                            title: "",
-                            description: "",
-                            clarificationHint: "",
-                            maxDurationSec: 90,
-                          },
-                        ])
-                      }
-                      className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-medium transition-colors"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      <span>Soru Ekle</span>
-                    </button>
-                  </div>
-
-                  <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-                    {newSurveyQuestions.map((q, idx) => {
-                      const qStatus = validateSurveyQuestion(q);
-                      const isReady = qStatus.isValid;
-                      const ph = getQuestionPlaceholder(idx);
-
-                      return (
-                        <div
-                          key={idx}
-                          className={`p-3.5 rounded-2xl bg-slate-950 border transition-colors space-y-2.5 relative ${
-                            isReady ? "border-slate-800" : "border-amber-500/30 bg-amber-500/[0.02]"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="text-[11px] font-bold text-indigo-400">
-                                Soru #{idx + 1}
-                              </span>
-                              {isReady ? (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-medium">
-                                  ✓ Hazır
+                  {(() => {
+                    const isQuestionsLocked = surveyModalMode === "edit" && editingSurveySessionCount > 0;
+                    return (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <label className="text-xs font-semibold text-white flex items-center gap-1.5">
+                              <span>Anket Soruları ({newSurveyQuestions.length})</span>
+                              {isQuestionsLocked ? (
+                                <span className="text-[11px] font-medium text-amber-400">
+                                  (Yanıt alındığı için kilitli • Çoğaltarak V2 açabilirsiniz)
                                 </span>
                               ) : (
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-medium">
-                                  ● Doldurulması Zorunlu
+                                <span className="text-[11px] font-normal text-slate-400">
+                                  (Şablon metinler engellenir, gerçek soru girilmelidir)
                                 </span>
                               )}
-                            </div>
-
-                            {newSurveyQuestions.length > 1 && (
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setNewSurveyQuestions(newSurveyQuestions.filter((_, i) => i !== idx))
-                                }
-                                title="Bu Soruyu Kaldır"
-                                className="text-red-400 hover:text-red-300 p-1 rounded-lg hover:bg-red-500/10 transition-colors"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-
-                          <div>
-                            <label className="block text-[11px] text-slate-400 mb-1">
-                              Soru Başlığı <span className="text-red-400">*</span>
                             </label>
-                            <input
-                              type="text"
-                              value={q.title}
-                              onChange={(e) => {
-                                const updated = [...newSurveyQuestions];
-                                updated[idx].title = e.target.value;
-                                setNewSurveyQuestions(updated);
-                              }}
-                              placeholder={ph.title}
-                              className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500 placeholder:text-slate-500"
-                            />
                           </div>
-
-                          <div>
-                            <label className="block text-[11px] text-slate-400 mb-1">
-                              Soru Açıklaması & Kapsamı <span className="text-red-400">*</span>
-                            </label>
-                            <textarea
-                              rows={2}
-                              value={q.description}
-                              onChange={(e) => {
-                                const updated = [...newSurveyQuestions];
-                                updated[idx].description = e.target.value;
-                                setNewSurveyQuestions(updated);
-                              }}
-                              placeholder={ph.description}
-                              className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500 placeholder:text-slate-500"
-                            />
-                          </div>
-
-                          <div>
-                            <label className="block text-[11px] text-slate-400 mb-1">
-                              AI Asistan İpucu (Clarification Hint) - İsteğe Bağlı
-                            </label>
-                            <input
-                              type="text"
-                              value={q.clarificationHint}
-                              onChange={(e) => {
-                                const updated = [...newSurveyQuestions];
-                                updated[idx].clarificationHint = e.target.value;
-                                setNewSurveyQuestions(updated);
-                              }}
-                              placeholder={ph.hint}
-                              className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-300 focus:outline-none focus:border-indigo-500 placeholder:text-slate-500"
-                            />
-                          </div>
-
-                          <div className="flex items-center justify-between pt-1 border-t border-slate-900">
-                            <div className="flex items-center gap-2">
-                              <label className="text-[11px] text-slate-400">
-                                Maksimum Yanıt Süresi (30 sn katları):
-                              </label>
-                              <select
-                                value={q.maxDurationSec || 90}
-                                onChange={(e) => {
-                                  const updated = [...newSurveyQuestions];
-                                  updated[idx].maxDurationSec = Number(e.target.value);
-                                  setNewSurveyQuestions(updated);
-                                }}
-                                className="px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono focus:outline-none focus:border-indigo-500"
-                              >
-                                <option value={30}>30 sn (:30)</option>
-                                <option value={60}>60 sn (01:00)</option>
-                                <option value={90}>90 sn (01:30)</option>
-                                <option value={120}>120 sn (02:00)</option>
-                                <option value={150}>150 sn (02:30)</option>
-                                <option value={180}>180 sn (03:00)</option>
-                              </select>
-                            </div>
-
-                            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
-                              {formatTime(q.maxDurationSec || 90)}
-                            </span>
-                          </div>
+                          {!isQuestionsLocked && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setNewSurveyQuestions([
+                                  ...newSurveyQuestions,
+                                  {
+                                    title: "",
+                                    description: "",
+                                    clarificationHint: "",
+                                    maxDurationSec: 90,
+                                  },
+                                ])
+                              }
+                              className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-medium transition-colors cursor-pointer"
+                            >
+                              <Plus className="w-3.5 h-3.5" />
+                              <span>Soru Ekle</span>
+                            </button>
+                          )}
                         </div>
-                      );
-                    })}
-                  </div>
+
+                        <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
+                          {newSurveyQuestions.map((q, idx) => {
+                            const qStatus = validateSurveyQuestion(q);
+                            const isReady = qStatus.isValid;
+                            const ph = getQuestionPlaceholder(idx);
+
+                            return (
+                              <div
+                                key={idx}
+                                className={`p-3.5 rounded-2xl bg-slate-950 border transition-colors space-y-2.5 relative ${
+                                  isReady ? "border-slate-800" : "border-amber-500/30 bg-amber-500/[0.02]"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between flex-wrap gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-[11px] font-bold text-indigo-400">
+                                      Soru #{idx + 1}
+                                    </span>
+                                    {isReady ? (
+                                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-medium">
+                                        ✓ Hazır
+                                      </span>
+                                    ) : (
+                                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-medium">
+                                        ● Doldurulması Zorunlu
+                                      </span>
+                                    )}
+                                    {clarifySuccessIndex === idx && (
+                                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 font-medium animate-fadeIn">
+                                        ✨ AI Kapsamı ve İpuçları Güncellendi
+                                      </span>
+                                    )}
+                                  </div>
+
+                                  <div className="flex items-center gap-2">
+                                    {/* Soru Başına AI Asistan Kapsamı Üretme Butonu */}
+                                    <button
+                                      type="button"
+                                      disabled={!q.title.trim() || clarifyingQuestionIndex === idx || isQuestionsLocked}
+                                      onClick={() => handleClarifyQuestion(idx)}
+                                      className={`px-2.5 py-1 rounded-xl text-[11px] font-medium transition-all flex items-center gap-1.5 border active:scale-95 ${
+                                        !q.title.trim() || isQuestionsLocked
+                                          ? "opacity-40 cursor-not-allowed bg-slate-900 border-slate-800 text-slate-500"
+                                          : clarifyingQuestionIndex === idx
+                                          ? "bg-indigo-600/30 text-indigo-200 border-indigo-500/50 animate-pulse"
+                                          : "bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-300 border-indigo-500/30 cursor-pointer shadow-sm shadow-indigo-500/10"
+                                      }`}
+                                      title={
+                                        isQuestionsLocked
+                                          ? "Bu ankette yanıt olduğu için sorular kilitlidir"
+                                          : !q.title.trim()
+                                          ? "Önce soru başlığını giriniz"
+                                          : "Yapay zeka ile bu soruya özel açıklama, kapsam ve asistan ipuçlarını otomatik üret"
+                                      }
+                                    >
+                                      {clarifyingQuestionIndex === idx ? (
+                                        <Loader2 className="w-3 h-3 animate-spin text-indigo-400" />
+                                      ) : (
+                                        <Sparkles className="w-3 h-3 text-indigo-400" />
+                                      )}
+                                      <span>
+                                        {clarifyingQuestionIndex === idx
+                                          ? "AI Üretiyor..."
+                                          : "✨ AI ile Kapsam & İpucu Üret"}
+                                      </span>
+                                    </button>
+
+                                    {!isQuestionsLocked && newSurveyQuestions.length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setNewSurveyQuestions(newSurveyQuestions.filter((_, i) => i !== idx))
+                                        }
+                                        title="Bu Soruyu Kaldır"
+                                        className="text-red-400 hover:text-red-300 p-1 rounded-lg hover:bg-red-500/10 transition-colors cursor-pointer"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <label className="block text-[11px] text-slate-400 mb-1">
+                                    Soru Başlığı <span className="text-red-400">*</span>
+                                  </label>
+                                  <input
+                                    type="text"
+                                    disabled={isQuestionsLocked}
+                                    value={q.title}
+                                    onChange={(e) => {
+                                      const updated = [...newSurveyQuestions];
+                                      updated[idx].title = e.target.value;
+                                      setNewSurveyQuestions(updated);
+                                    }}
+                                    placeholder={ph.title}
+                                    className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500 placeholder:text-slate-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-[11px] text-slate-400 mb-1">
+                                    Soru Açıklaması & Kapsamı <span className="text-red-400">*</span>
+                                  </label>
+                                  <textarea
+                                    rows={2}
+                                    disabled={isQuestionsLocked}
+                                    value={q.description}
+                                    onChange={(e) => {
+                                      const updated = [...newSurveyQuestions];
+                                      updated[idx].description = e.target.value;
+                                      setNewSurveyQuestions(updated);
+                                    }}
+                                    placeholder={ph.description}
+                                    className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white focus:outline-none focus:border-indigo-500 placeholder:text-slate-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-[11px] text-slate-400 mb-1">
+                                    AI Asistan İpucu & Hipotetik Örnekleri (Clarification Hint)
+                                  </label>
+                                  <input
+                                    type="text"
+                                    disabled={isQuestionsLocked}
+                                    value={q.clarificationHint}
+                                    onChange={(e) => {
+                                      const updated = [...newSurveyQuestions];
+                                      updated[idx].clarificationHint = e.target.value;
+                                      setNewSurveyQuestions(updated);
+                                    }}
+                                    placeholder={ph.hint}
+                                    className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-xs text-slate-300 focus:outline-none focus:border-indigo-500 placeholder:text-slate-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                                  />
+                                </div>
+
+                                <div className="flex items-center justify-between pt-1 border-t border-slate-900">
+                                  <div className="flex items-center gap-2">
+                                    <label className="text-[11px] text-slate-400">
+                                      Maksimum Yanıt Süresi (30 sn katları):
+                                    </label>
+                                    <select
+                                      disabled={isQuestionsLocked}
+                                      value={q.maxDurationSec || 90}
+                                      onChange={(e) => {
+                                        const updated = [...newSurveyQuestions];
+                                        updated[idx].maxDurationSec = Number(e.target.value);
+                                        setNewSurveyQuestions(updated);
+                                      }}
+                                      className="px-2 py-1 rounded-lg bg-slate-900 border border-slate-700 text-xs text-white font-mono focus:outline-none focus:border-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                                    >
+                                      <option value={30}>30 sn (:30)</option>
+                                      <option value={60}>60 sn (01:00)</option>
+                                      <option value={90}>90 sn (01:30)</option>
+                                      <option value={120}>120 sn (02:00)</option>
+                                      <option value={150}>150 sn (02:30)</option>
+                                      <option value={180}>180 sn (03:00)</option>
+                                    </select>
+                                  </div>
+
+                                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
+                                    {formatTime(q.maxDurationSec || 90)}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </>
+                    );
+                  })()}
 
                   {/* Toplam Maksimum Yanıt Süresi Göstergesi */}
                   <div className="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3">
@@ -2200,7 +2473,7 @@ function AdminDashboardContent() {
                   <button
                     type="button"
                     onClick={() => setIsNewSurveyModalOpen(false)}
-                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium"
+                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium cursor-pointer"
                   >
                     Vazgeç
                   </button>
@@ -2208,7 +2481,7 @@ function AdminDashboardContent() {
                   <button
                     type="submit"
                     disabled={isSavingSurvey}
-                    className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-2 shadow-md disabled:opacity-50"
+                    className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-2 shadow-md disabled:opacity-50 cursor-pointer"
                   >
                     {isSavingSurvey ? (
                       <>
@@ -2218,7 +2491,13 @@ function AdminDashboardContent() {
                     ) : (
                       <>
                         <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span>Anketi Canlıya Al</span>
+                        <span>
+                          {surveyModalMode === "edit"
+                            ? "Değişiklikleri Kaydet"
+                            : surveyModalMode === "duplicate"
+                            ? "Yeni Versiyonu Canlıya Al (V2)"
+                            : "Anketi Canlıya Al"}
+                        </span>
                       </>
                     )}
                   </button>
