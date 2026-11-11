@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getAIService } from "@/services/ai";
+import { validateSurveyQuestionTitle } from "@/features/anti-garbage/survey-validator";
 
 const ClarifyQuestionSchema = z.object({
   surveyTitle: z.string().optional(),
@@ -25,6 +26,18 @@ export async function POST(req: NextRequest) {
     }
 
     const { surveyTitle, questionTitle, currentDescription, lang } = validation.data;
+
+    // Gibberish, keyboard-mash & template check
+    const titleCheck = validateSurveyQuestionTitle(questionTitle);
+    if (!titleCheck.isValid) {
+      return NextResponse.json(
+        {
+          error: titleCheck.error || "Girilen soru başlığı anlamsız görünüyor. Lütfen somut bir soru konusu yazınız.",
+        },
+        { status: 400 }
+      );
+    }
+
     const aiService = getAIService();
     const result = await aiService.clarifyQuestionSpec({
       surveyTitle,

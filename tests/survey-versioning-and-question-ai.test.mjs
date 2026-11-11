@@ -1,7 +1,11 @@
 import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import { MockAIService } from "../src/services/ai/mock.ts";
-import { validateSurveyQuestion } from "../src/features/anti-garbage/survey-validator.ts";
+import {
+  validateSurveyQuestion,
+  validateSurveyQuestionTitle,
+  isGibberishOrMeaninglessTitle,
+} from "../src/features/anti-garbage/survey-validator.ts";
 
 describe("Survey Versioning (Duplicate V2) & Question-Level AI Copilot", () => {
   const aiService = new MockAIService();
@@ -136,5 +140,94 @@ describe("Survey Versioning (Duplicate V2) & Question-Level AI Copilot", () => {
     });
 
     assert.ok(reply.length > 20, "Asistan soru bazlı açıklama üretmelidir");
+  });
+
+  test("6. Buton Pasifleşme Mantığı: İpucu alanı doluysa AI butonu pasife düşmeli, kutucuk silindiğinde aktifleşmelidir", () => {
+    const evaluateButtonState = (question, isLocked = false, isGenerating = false) => {
+      const isHintFilled = Boolean(question.clarificationHint && question.clarificationHint.trim().length > 0);
+      const isTitleEmpty = !question.title.trim();
+      const isClarifyDisabled = isTitleEmpty || isLocked || isGenerating || isHintFilled;
+
+      return {
+        isClarifyDisabled,
+        isHintFilled,
+        label: isGenerating
+          ? "AI Üretiyor..."
+          : isHintFilled
+          ? "✨ İpucu Tanımlı"
+          : "✨ AI ile Kapsam & İpucu Üret",
+        tooltip: isLocked
+          ? "Bu ankette yanıt olduğu için sorular kilitlidir"
+          : isHintFilled
+          ? "İpucu alanı zaten dolu. Yapay zeka ile yeniden üretmek isterseniz kutucuktaki metni siliniz."
+          : isTitleEmpty
+          ? "Önce soru başlığını giriniz"
+          : "Yapay zeka ile bu soruya özel açıklama, kapsam ve asistan ipuçlarını otomatik üret",
+      };
+    };
+
+    // Durum 1: İpucu kutusu dolu olan soru (Resim 1'deki durum)
+    const filledQuestion = {
+      title: "Q9 — Sonuç & Dersler: Olay Nasıl Çözüldü, Hangi Zorluklar Kaldı?",
+      clarificationHint: "Geçici bir çözümle mi idare edildiği, aynı parçanın tekrar kırılma riski...",
+    };
+    const stateFilled = evaluateButtonState(filledQuestion);
+    assert.equal(stateFilled.isClarifyDisabled, true, "İpucu kutusu doluyken buton pasif (disabled) olmalıdır");
+    assert.equal(stateFilled.label, "✨ İpucu Tanımlı");
+    assert.match(stateFilled.tooltip, /İpucu alanı zaten dolu/);
+
+    // Durum 2: Kullanıcı kutucuğu sildiğinde buton yeniden aktifleşmelidir
+    const emptiedQuestion = {
+      title: "Q9 — Sonuç & Dersler: Olay Nasıl Çözüldü, Hangi Zorluklar Kaldı?",
+      clarificationHint: "",
+    };
+    const stateEmptied = evaluateButtonState(emptiedQuestion);
+    assert.equal(stateEmptied.isClarifyDisabled, false, "Kutucuk temizlendiğinde buton aktifleşmelidir");
+    assert.equal(stateEmptied.label, "✨ AI ile Kapsam & İpucu Üret");
+
+    // Durum 3: Başlık boşken buton pasif olmalıdır
+    const emptyTitleQuestion = {
+      title: "",
+      clarificationHint: "",
+    };
+    const stateEmptyTitle = evaluateButtonState(emptyTitleQuestion);
+    assert.equal(stateEmptyTitle.isClarifyDisabled, true, "Başlık boşken buton pasif olmalıdır");
+  });
+
+  test("7. Anlamsız Soru Başlığı Koruması (Anti-Gibberish): 'asdasdgad' gibi rastgele tuşlamalar engellenmeli ve üretim yapılmamalıdır", () => {
+    // Resim 2'deki anlamsız tuşlama
+    const gibberishCheck1 = validateSurveyQuestionTitle("asdasdgad");
+    assert.equal(gibberishCheck1.isValid, false, "'asdasdgad' anlamsız başlık olarak reddedilmelidir");
+    assert.match(gibberishCheck1.error || "", /Rastgele klavye tuşlaması|Anlamsız klavye tuşlaması/);
+
+    // Diğer klavye tuşlama kalıpları
+    const gibberishCheck2 = validateSurveyQuestionTitle("qwerty");
+    assert.equal(gibberishCheck2.isValid, false);
+
+    const gibberishCheck3 = validateSurveyQuestionTitle("aaaaaa");
+    assert.equal(gibberishCheck3.isValid, false);
+    assert.match(gibberishCheck3.error || "", /Aşırı karakter tekrarı/);
+
+    const dummyCheck = validateSurveyQuestionTitle("test");
+    assert.equal(dummyCheck.isValid, false);
+    assert.match(dummyCheck.error || "", /Taslak veya deneme/);
+
+    const shortCheck = validateSurveyQuestionTitle("ab");
+    assert.equal(shortCheck.isValid, false);
+  });
+
+  test("8. Gerçek ve Anlamlı Soru Başlıkları Sorunsuz Onaylanmalıdır", () => {
+    const validTitles = [
+      "Q9 — Sonuç & Dersler: Olay Nasıl Çözüldü, Hangi Zorluklar Kaldı?",
+      "Kritik Parça Tedarik Süreleri ve Gecikmeler",
+      "Makine Üzerinde Yaşanan İlk Arıza Belirtisi",
+      "Food Production Equipment Part Experience",
+    ];
+
+    for (const title of validTitles) {
+      const check = validateSurveyQuestionTitle(title);
+      assert.equal(check.isValid, true, `"${title}" geçerli bir başlık olarak kabul edilmelidir`);
+      assert.equal(check.error, undefined);
+    }
   });
 });

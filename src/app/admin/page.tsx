@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo, Suspense } from "react";
+import React, { useEffect, useState, useMemo, useRef, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import {
@@ -41,7 +41,7 @@ import {
 } from "lucide-react";
 import { InterviewSession, SurveyConfig, Question } from "@/types/interview";
 import { getAllSurveys, PRINT_IT_RIGHT_SURVEY } from "@/surveys";
-import { validateSurveyQuestion } from "@/features/anti-garbage/survey-validator";
+import { validateSurveyQuestion, validateSurveyQuestionTitle } from "@/features/anti-garbage/survey-validator";
 import { formatTime } from "@/lib/utils";
 import { generateSurveyCSV } from "@/lib/csv-export";
 
@@ -285,6 +285,8 @@ function AdminDashboardContent() {
   const [editingSurveySessionCount, setEditingSurveySessionCount] = useState<number>(0);
   const [clarifyingQuestionIndex, setClarifyingQuestionIndex] = useState<number | null>(null);
   const [clarifySuccessIndex, setClarifySuccessIndex] = useState<number | null>(null);
+  const [clarifyWarning, setClarifyWarning] = useState<{ index: number; message: string } | null>(null);
+  const clarifyWarningTimerRef = useRef<NodeJS.Timeout | null>(null);
   const [surveyListSuccess, setSurveyListSuccess] = useState("");
   const [duplicatingSurveyId, setDuplicatingSurveyId] = useState<string | null>(null);
 
@@ -311,6 +313,7 @@ function AdminDashboardContent() {
     ]);
     setSurveySaveError("");
     setSurveySaveSuccess("");
+    setClarifyWarning(null);
     setAiPromptInput("");
     setPromptGenError("");
     setPromptGenSuccess("");
@@ -325,6 +328,7 @@ function AdminDashboardContent() {
     setEditingSurveyId(survey.id);
     setEditingSurveyOriginal(survey);
     setEditingSurveySessionCount(sessionCount);
+    setClarifyWarning(null);
 
     setNewSurveyTitle(survey.title || "");
     setNewSurveyTagline(survey.tagline || "");
@@ -495,10 +499,28 @@ function AdminDashboardContent() {
   // Soru Başına AI Asistan Kapsamı Üretme
   const handleClarifyQuestion = async (idx: number) => {
     const q = newSurveyQuestions[idx];
-    if (!q || !q.title.trim()) return;
+    if (!q) return;
+
+    // 1. İpucu alanı zaten doluysa yeniden üretme (kullanıcının kutuyu temizlemesi beklenir)
+    if (q.clarificationHint && q.clarificationHint.trim().length > 0) {
+      return;
+    }
+
+    // 2. Anlamsız, boş, şablon veya klavye tuşlaması (mash) kontrolü
+    const titleCheck = validateSurveyQuestionTitle(q.title);
+    if (!titleCheck.isValid) {
+      if (clarifyWarningTimerRef.current) clearTimeout(clarifyWarningTimerRef.current);
+      setClarifyWarning({
+        index: idx,
+        message: titleCheck.error || "Lütfen geçerli ve somut bir soru başlığı giriniz.",
+      });
+      clarifyWarningTimerRef.current = setTimeout(() => setClarifyWarning(null), 4000);
+      return;
+    }
 
     setClarifyingQuestionIndex(idx);
     setClarifySuccessIndex(null);
+    setClarifyWarning(null);
 
     try {
       const res = await fetch("/api/surveys/clarify-question", {
@@ -532,7 +554,13 @@ function AdminDashboardContent() {
       setTimeout(() => setClarifySuccessIndex(null), 3500);
     } catch (err: unknown) {
       console.error("AI clarify question error:", err);
-      alert((err as Error).message || "AI soru bağlamı üretilirken bir hata oluştu.");
+      // Sönen bulut tarzı uyarı göster (rahatsız edici alert() yerine)
+      if (clarifyWarningTimerRef.current) clearTimeout(clarifyWarningTimerRef.current);
+      setClarifyWarning({
+        index: idx,
+        message: (err as Error).message || "AI soru bağlamı üretilirken bir hata oluştu.",
+      });
+      clarifyWarningTimerRef.current = setTimeout(() => setClarifyWarning(null), 4000);
     } finally {
       setClarifyingQuestionIndex(null);
     }
@@ -2425,6 +2453,10 @@ function AdminDashboardContent() {
                             const qStatus = validateSurveyQuestion(q);
                             const isReady = qStatus.isValid;
                             const ph = getQuestionPlaceholder(idx);
+                            const isHintFilled = Boolean(q.clarificationHint && q.clarificationHint.trim().length > 0);
+                            const isGeneratingThis = clarifyingQuestionIndex === idx;
+                            const isTitleEmpty = !q.title.trim();
+                            const isClarifyDisabled = isTitleEmpty || isQuestionsLocked || isGeneratingThis || isHintFilled;
 
                             return (
                               <div
@@ -2458,31 +2490,35 @@ function AdminDashboardContent() {
                                     {/* Soru Başına AI Asistan Kapsamı Üretme Butonu */}
                                     <button
                                       type="button"
-                                      disabled={!q.title.trim() || clarifyingQuestionIndex === idx || isQuestionsLocked}
+                                      disabled={isClarifyDisabled}
                                       onClick={() => handleClarifyQuestion(idx)}
                                       className={`px-2.5 py-1 rounded-xl text-[11px] font-medium transition-all flex items-center gap-1.5 border active:scale-95 ${
-                                        !q.title.trim() || isQuestionsLocked
+                                        isClarifyDisabled && !isGeneratingThis
                                           ? "opacity-40 cursor-not-allowed bg-slate-900 border-slate-800 text-slate-500"
-                                          : clarifyingQuestionIndex === idx
+                                          : isGeneratingThis
                                           ? "bg-indigo-600/30 text-indigo-200 border-indigo-500/50 animate-pulse"
                                           : "bg-indigo-600/15 hover:bg-indigo-600/25 text-indigo-300 border-indigo-500/30 cursor-pointer shadow-sm shadow-indigo-500/10"
                                       }`}
                                       title={
                                         isQuestionsLocked
                                           ? "Bu ankette yanıt olduğu için sorular kilitlidir"
-                                          : !q.title.trim()
+                                          : isHintFilled
+                                          ? "İpucu alanı zaten dolu. Yapay zeka ile yeniden üretmek isterseniz kutucuktaki metni siliniz."
+                                          : isTitleEmpty
                                           ? "Önce soru başlığını giriniz"
                                           : "Yapay zeka ile bu soruya özel açıklama, kapsam ve asistan ipuçlarını otomatik üret"
                                       }
                                     >
-                                      {clarifyingQuestionIndex === idx ? (
+                                      {isGeneratingThis ? (
                                         <Loader2 className="w-3 h-3 animate-spin text-indigo-400" />
                                       ) : (
-                                        <Sparkles className="w-3 h-3 text-indigo-400" />
+                                        <Sparkles className={`w-3 h-3 ${isHintFilled ? "text-slate-500" : "text-indigo-400"}`} />
                                       )}
                                       <span>
-                                        {clarifyingQuestionIndex === idx
+                                        {isGeneratingThis
                                           ? "AI Üretiyor..."
+                                          : isHintFilled
+                                          ? "✨ İpucu Tanımlı"
                                           : "✨ AI ile Kapsam & İpucu Üret"}
                                       </span>
                                     </button>
@@ -2502,6 +2538,26 @@ function AdminDashboardContent() {
                                   </div>
                                 </div>
 
+                                {/* Sönen Bulut (Floating Cloud Warning Popover) */}
+                                {clarifyWarning?.index === idx && (
+                                  <div className="p-2.5 rounded-2xl bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-amber-500/20 border border-amber-500/40 text-amber-200 text-xs flex items-center justify-between gap-2 shadow-xl shadow-amber-500/10 backdrop-blur-md animate-fadeIn transition-all">
+                                    <div className="flex items-center gap-2">
+                                      <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 animate-bounce" />
+                                      <span className="font-semibold text-[11.5px] leading-snug">
+                                        {clarifyWarning.message}
+                                      </span>
+                                    </div>
+                                    <button
+                                      type="button"
+                                      onClick={() => setClarifyWarning(null)}
+                                      className="text-amber-400/80 hover:text-white p-1 rounded-lg hover:bg-amber-500/20 transition-colors cursor-pointer text-xs"
+                                      title="Uyarıyı Kapat"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                )}
+
                                 <div>
                                   <label className="block text-[11px] text-slate-400 mb-1">
                                     Soru Başlığı <span className="text-red-400">*</span>
@@ -2511,6 +2567,9 @@ function AdminDashboardContent() {
                                     disabled={isQuestionsLocked}
                                     value={q.title}
                                     onChange={(e) => {
+                                      if (clarifyWarning?.index === idx) {
+                                        setClarifyWarning(null);
+                                      }
                                       const updated = [...newSurveyQuestions];
                                       updated[idx].title = e.target.value;
                                       setNewSurveyQuestions(updated);
