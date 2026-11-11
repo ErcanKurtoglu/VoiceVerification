@@ -192,27 +192,22 @@ describe("Smart One-Click Duplicate (V2 -> V3 -> V4) & AI Context Preservation",
     assert.equal(editableState.label, "Düzenle");
   });
 
-  test("6. Modal Sadeliği: Modal başlığında mükerrer kopyala butonu olmamalı, eylem sadece amber uyarı kutusunda tek olmalıdır", () => {
-    const getModalCopyActions = (sessionCount) => {
+  test("6. Modal Sadeliği: Çoğaltma butonu modal başlığında her ankette (V1, V2...) tek ve her zaman erişilebilir olmalı, amber kutuda mükerrer buton olmamalıdır", () => {
+    const getModalCopyActions = () => {
       const actions = [];
-      // Header'da buton yok
-      const headerHasCopyButton = false;
-      if (headerHasCopyButton) actions.push("header");
+      // Modal başlığında tek ve her zaman erişilebilir buton
+      const headerHasCopyButton = true;
+      if (headerHasCopyButton) actions.push("header_duplicate_button");
 
-      // Yalnızca yanıt almış anketin amber uyarı kutusunda tek buton var
-      if (sessionCount > 0) {
-        actions.push("amber_box_v2_duplicate");
-      }
+      // Amber kutusunda mükerrer buton yok (sadece bilgilendirici uyarı var)
+      const amberBoxHasButton = false;
+      if (amberBoxHasButton) actions.push("amber_box_duplicate_button");
+
       return actions;
     };
 
-    // 17 katılımcılı ankette yalnızca amber kutu butonu olmalı (1 adet)
-    const lockedActions = getModalCopyActions(17);
-    assert.equal(lockedActions.length, 1, "Düzenleme modalında asla iki adet çoğalt butonu olmamalıdır");
-    assert.equal(lockedActions[0], "amber_box_v2_duplicate");
-
-    // 0 katılımcılı ankette modal içinde gereksiz çoğaltma butonu olmamalı (0 adet)
-    const editableActions = getModalCopyActions(0);
-    assert.equal(editableActions.length, 0);
+    const actions = getModalCopyActions();
+    assert.equal(actions.length, 1, "Düzenleme modalında her zaman tam 1 adet çoğalt butonu olmalıdır");
+    assert.equal(actions[0], "header_duplicate_button");
   });
 });

@@ -2103,41 +2103,44 @@ function AdminDashboardContent() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => setIsNewSurveyModalOpen(false)}
-                  className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer"
-                >
-                  ✕
-                </button>
+                <div className="flex items-center gap-2">
+                  {surveyModalMode === "edit" && editingSurveyOriginal && (
+                    <button
+                      type="button"
+                      disabled={duplicatingSurveyId !== null}
+                      onClick={() => handleExecuteSmartDuplicate(editingSurveyOriginal, newSurveyPin)}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                      title="Bu anketin tüm içeriğini ve AI bağlamını bağımsız yeni bir versiyon olarak kopyala ve bu pencereyi kapat"
+                    >
+                      {duplicatingSurveyId ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-400" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                      <span>Yeni Versiyon Çoğalt</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setIsNewSurveyModalOpen(false)}
+                    className="p-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                </div>
               </div>
 
               {/* Yanıt Almış Anket Koruma Uyarısı */}
               {surveyModalMode === "edit" && editingSurveySessionCount > 0 && (
-                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-fadeIn">
-                  <div className="flex items-start gap-2.5">
-                    <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
-                    <div>
-                      <strong className="block text-white">
-                        Bu Anket Yanıt Almıştır ({editingSurveySessionCount} katılımcı)
-                      </strong>
-                      <span className="text-[11px] text-amber-300/90 leading-relaxed block">
-                        Veri bütünlüğünü ve analiz tutarlılığını korumak için sorular kilitlenmiştir. Soruları eklemek, silmek veya değiştirmek için lütfen &quot;Yeni Versiyon Olarak Çoğalt (V2)&quot; seçeneğini kullanın.
-                      </span>
-                    </div>
+                <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-2.5 animate-fadeIn">
+                  <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                  <div>
+                    <strong className="block text-white">
+                      Bu Anket Yanıt Almıştır ({editingSurveySessionCount} katılımcı)
+                    </strong>
+                    <span className="text-[11px] text-amber-300/90 leading-relaxed block">
+                      Veri bütünlüğünü ve analiz tutarlılığını korumak için sorular kilitlenmiştir. Soruları eklemek, silmek veya değiştirmek için lütfen yukarıdaki &quot;Yeni Versiyon Çoğalt&quot; seçeneğini kullanın.
+                    </span>
                   </div>
-                  <button
-                    type="button"
-                    disabled={duplicatingSurveyId !== null}
-                    onClick={() => handleExecuteSmartDuplicate(editingSurveyOriginal, newSurveyPin)}
-                    className="px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 text-[11px] font-semibold shrink-0 cursor-pointer transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-50"
-                  >
-                    {duplicatingSurveyId ? (
-                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                    ) : (
-                      <Copy className="w-3.5 h-3.5" />
-                    )}
-                    <span>V2 Olarak Çoğalt</span>
-                  </button>
                 </div>
               )}
 
