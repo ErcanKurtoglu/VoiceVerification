@@ -122,12 +122,13 @@ export class GeminiAIService implements AIService {
       };
     }
 
+    const cleanMime = (params.mimeType || "audio/webm").split(";")[0].trim().toLowerCase();
     const parts: Array<{ text?: string; inlineData?: { mimeType: string; data: string } }> = [];
 
-    if (params.audioBase64 && params.mimeType) {
+    if (params.audioBase64) {
       parts.push({
         inlineData: {
-          mimeType: params.mimeType,
+          mimeType: cleanMime,
           data: params.audioBase64,
         },
       });
@@ -146,27 +147,40 @@ export class GeminiAIService implements AIService {
 
     parts.push({ text: prompt });
 
-    const response = await this.client.models.generateContent({
-      model: "gemini-2.5-flash",
-      contents: [{ role: "user", parts }],
-      config: {
-        responseMimeType: "application/json",
-        temperature: 0.2, // Yüksek doğruluklu deşifre için düşük sıcaklık
-      },
-    });
+    let lastError: unknown = null;
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const response = await this.client.models.generateContent({
+          model: "gemini-2.5-flash",
+          contents: [{ role: "user", parts }],
+          config: {
+            responseMimeType: "application/json",
+            temperature: 0.2, // Yüksek doğruluklu deşifre için düşük sıcaklık
+          },
+        });
 
-    try {
-      const parsed = JSON.parse(response.text || "{}");
-      return {
-        transcript: parsed.transcript || "",
-        isJunk: Boolean(parsed.isJunk),
-      };
-    } catch {
-      return {
-        transcript: response.text || "",
-        isJunk: false,
-      };
+        try {
+          const parsed = JSON.parse(response.text || "{}");
+          return {
+            transcript: parsed.transcript || "",
+            isJunk: Boolean(parsed.isJunk),
+          };
+        } catch {
+          return {
+            transcript: response.text || "",
+            isJunk: false,
+          };
+        }
+      } catch (err) {
+        lastError = err;
+        console.warn(`[Gemini] transcribeAudioOrText attempt ${attempt} failed:`, err);
+        if (attempt < 2) {
+          await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
+      }
     }
+
+    throw lastError;
   }
 
   async generateSurveyFromPrompt(rawPrompt: string): Promise<GeneratedSurveyResult> {

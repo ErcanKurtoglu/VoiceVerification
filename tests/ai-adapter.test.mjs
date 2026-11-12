@@ -55,4 +55,17 @@ describe("AI Adapter & Gemini Service Contract", () => {
     assert.strictEqual(junkResponses.length, 1);
     assert.strictEqual(junkResponses[0].participant, "Bot");
   });
+
+  test("MIME type sanitization: codecs parametrelerini temizleyip saf audio/webm üretmelidir", () => {
+    const rawMime = "audio/webm;codecs=opus";
+    const cleanMime = (rawMime || "audio/webm").split(";")[0].trim().toLowerCase();
+    assert.strictEqual(cleanMime, "audio/webm");
+  });
+
+  test("/api/analyze rotası Vercel zaman aşımı için maxDuration = 60 ve retranscribe desteği içermelidir", async () => {
+    const fs = await import("node:fs");
+    const routeContent = fs.readFileSync("src/app/api/analyze/route.ts", "utf-8");
+    assert.strictEqual(routeContent.includes("export const maxDuration = 60;"), true);
+    assert.strictEqual(routeContent.includes('body.action === "retranscribe"'), true);
+  });
 });

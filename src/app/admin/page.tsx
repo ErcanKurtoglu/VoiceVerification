@@ -290,6 +290,55 @@ function AdminDashboardContent() {
   const [surveyListSuccess, setSurveyListSuccess] = useState("");
   const [duplicatingSurveyId, setDuplicatingSurveyId] = useState<string | null>(null);
 
+  // Sesli yanıt tekil yeniden deşifre state'i: "sessionId-questionId"
+  const [retranscribingKey, setRetranscribingKey] = useState<string | null>(null);
+
+  const handleRetranscribe = async (sessionId: string, questionId: string) => {
+    const key = `${sessionId}-${questionId}`;
+    setRetranscribingKey(key);
+
+    try {
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "retranscribe",
+          sessionId,
+          questionId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Deşifre işlemi tamamlanamadı");
+      }
+
+      setSessions((prev) =>
+        prev.map((s) => {
+          if (s.id !== sessionId) return s;
+          const currentResp = s.responses[questionId] || {};
+          const updatedResp = {
+            ...currentResp,
+            transcript: data.transcript,
+            isJunk: data.isJunk,
+          };
+          return {
+            ...s,
+            responses: {
+              ...s.responses,
+              [questionId]: updatedResp,
+            },
+          };
+        })
+      );
+    } catch (err: unknown) {
+      const error = err as Error;
+      alert(`Deşifre hatası: ${error.message}`);
+    } finally {
+      setRetranscribingKey(null);
+    }
+  };
+
   // AI Prompt ile Otomatik Üretim State
   const [isAiGenOpen, setIsAiGenOpen] = useState(false);
   const [aiPromptInput, setAiPromptInput] = useState("");
@@ -1883,11 +1932,36 @@ function AdminDashboardContent() {
                                             &ldquo;{transcriptText}&rdquo;
                                           </p>
                                         ) : (
-                                          <p className="text-xs text-slate-500 italic pl-3 border-l-2 border-slate-700">
-                                            {resp?.audioUrl
-                                              ? "Ses kaydı mevcut, deşifre işleniyor..."
-                                              : "Katılımcı bu soruyu yanıtlamadı."}
-                                          </p>
+                                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs">
+                                            <div className="flex items-center gap-2 text-amber-300">
+                                              <Clock className="w-4 h-4 text-amber-400 shrink-0" />
+                                              <span>
+                                                {resp?.audioUrl
+                                                  ? "Ses kaydı mevcut, deşifre bekleniyor..."
+                                                  : "Katılımcı bu soruyu yanıtlamadı."}
+                                              </span>
+                                            </div>
+                                            {resp?.audioUrl && (
+                                              <button
+                                                type="button"
+                                                onClick={() => handleRetranscribe(s.id, qId)}
+                                                disabled={retranscribingKey === `${s.id}-${qId}`}
+                                                className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-[11px] font-semibold flex items-center gap-1.5 transition-all shadow-sm shrink-0 active:scale-95 cursor-pointer"
+                                              >
+                                                {retranscribingKey === `${s.id}-${qId}` ? (
+                                                  <>
+                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                                    <span>Deşifre Ediliyor (AI)...</span>
+                                                  </>
+                                                ) : (
+                                                  <>
+                                                    <Sparkles className="w-3.5 h-3.5" />
+                                                    <span>Şimdi Deşifre Et (AI)</span>
+                                                  </>
+                                                )}
+                                              </button>
+                                            )}
+                                          </div>
                                         )}
                                       </div>
                                     </div>
