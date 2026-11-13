@@ -219,23 +219,32 @@ export const InterviewWizard: React.FC<InterviewWizardProps> = ({
         let audioUrl = resp.audioUrl;
 
         if (resp.mode === "audio" && resp.audioBlob) {
-          try {
-            const formData = new FormData();
-            formData.append("surveyId", project.id);
-            formData.append("sessionId", activeSessionId);
-            formData.append("questionId", resp.questionId);
-            formData.append("audio", resp.audioBlob, `${resp.questionId}.webm`);
+          for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+              const formData = new FormData();
+              formData.append("surveyId", project.id);
+              formData.append("sessionId", activeSessionId);
+              formData.append("questionId", resp.questionId);
+              formData.append("audio", resp.audioBlob, `${resp.questionId}.webm`);
 
-            const uploadRes = await fetch("/api/upload", {
-              method: "POST",
-              body: formData,
-            });
-            const uploadData = await uploadRes.json();
-            if (uploadData.audioUrl) {
-              audioUrl = uploadData.audioUrl;
+              const uploadRes = await fetch("/api/upload", {
+                method: "POST",
+                body: formData,
+              });
+              if (!uploadRes.ok) {
+                throw new Error(`HTTP ${uploadRes.status}`);
+              }
+              const uploadData = await uploadRes.json();
+              if (uploadData.audioUrl) {
+                audioUrl = uploadData.audioUrl;
+                break;
+              }
+            } catch (uploadErr) {
+              console.error(`Soru ${qId} ses yükleme hatası (Deneme ${attempt}):`, uploadErr);
+              if (attempt < 2) {
+                await new Promise((r) => setTimeout(r, 800));
+              }
             }
-          } catch (uploadErr) {
-            console.error(`Soru ${qId} ses yükleme hatası:`, uploadErr);
           }
         }
 

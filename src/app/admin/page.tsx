@@ -1938,7 +1938,9 @@ function AdminDashboardContent() {
                                               <span>
                                                 {resp?.audioUrl
                                                   ? "Ses kaydı mevcut, deşifre bekleniyor..."
-                                                  : "Katılımcı bu soruyu yanıtlamadı."}
+                                                  : isAudio
+                                                    ? "Ses kaydı yüklenemedi (bağlantı hatası)."
+                                                    : "Katılımcı bu soruyu yanıtlamadı."}
                                               </span>
                                             </div>
                                             {resp?.audioUrl && (

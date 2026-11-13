@@ -87,9 +87,22 @@ export async function POST(req: NextRequest) {
     const survey = await getSurveyByIdAsync(session.projectId);
     const questionsMap = new Map(survey.questions.map((q) => [q.id, q]));
 
-    // Soruları 3'erli gruplar halinde paralel işleme (Hızlı deşifre + Gemini rate-limit koruması)
+    // Ön Güvenlik Kaydı: Transkripsiyon uzun sürse bile oturum ve audioUrl'ler asla kaybolmasın
+    const initialSnapshot: InterviewSession = {
+      ...session,
+      responses: Object.fromEntries(
+        Object.entries(session.responses).map(([k, v]) => {
+          const copy = { ...v };
+          delete copy.audioBase64;
+          return [k, copy];
+        })
+      ),
+    };
+    await storage.saveSession(initialSnapshot);
+
+    // Soruları 5'erli gruplar halinde paralel işleme (9 soru = 2 hızlı tur ~5 sn)
     const entries = Object.entries(session.responses);
-    const CHUNK_SIZE = 3;
+    const CHUNK_SIZE = 5;
 
     for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
       const chunk = entries.slice(i, i + CHUNK_SIZE);

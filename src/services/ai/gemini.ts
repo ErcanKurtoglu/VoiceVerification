@@ -148,7 +148,7 @@ export class GeminiAIService implements AIService {
     parts.push({ text: prompt });
 
     let lastError: unknown = null;
-    for (let attempt = 1; attempt <= 2; attempt++) {
+    for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         const response = await this.client.models.generateContent({
           model: "gemini-2.5-flash",
@@ -161,21 +161,35 @@ export class GeminiAIService implements AIService {
 
         try {
           const parsed = JSON.parse(response.text || "{}");
+          const transcriptText = typeof parsed.transcript === "string" ? parsed.transcript.trim() : "";
+          const isJunkFlag = Boolean(parsed.isJunk);
+
+          if (!transcriptText && !isJunkFlag && attempt < 3) {
+            throw new Error("Empty transcript returned by Gemini");
+          }
+
           return {
-            transcript: parsed.transcript || "",
-            isJunk: Boolean(parsed.isJunk),
+            transcript: transcriptText,
+            isJunk: isJunkFlag,
           };
-        } catch {
+        } catch (parseErr) {
+          if (parseErr instanceof Error && parseErr.message === "Empty transcript returned by Gemini") {
+            throw parseErr;
+          }
+          const fallbackText = (response.text || "").trim();
+          if (!fallbackText && attempt < 3) {
+            throw new Error("Empty raw response from Gemini");
+          }
           return {
-            transcript: response.text || "",
+            transcript: fallbackText,
             isJunk: false,
           };
         }
       } catch (err) {
         lastError = err;
         console.warn(`[Gemini] transcribeAudioOrText attempt ${attempt} failed:`, err);
-        if (attempt < 2) {
-          await new Promise((resolve) => setTimeout(resolve, 1500));
+        if (attempt < 3) {
+          await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
         }
       }
     }
