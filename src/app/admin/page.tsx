@@ -1659,7 +1659,7 @@ function AdminDashboardContent() {
                         key={s.id}
                         className={`rounded-2xl overflow-hidden transition-all ${
                           isExpanded
-                            ? "bg-slate-900/90 border-2 border-indigo-500/40 ring-1 ring-indigo-500/20 shadow-2xl shadow-black/60"
+                            ? "bg-slate-900/90 border-2 border-white shadow-2xl shadow-black/70"
                             : "bg-slate-950/60 border border-slate-800/80 hover:border-slate-700/80"
                         }`}
                       >
